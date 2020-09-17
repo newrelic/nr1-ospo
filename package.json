@@ -1,7 +1,7 @@
 {
     "private": true,
-    "name": "{{ NERDPACK_NAME }}",
-    "description": "Nerdpack template",
+    "name": "nr1-ospo",
+    "description": "OSPO dashboard built on New Relic One",
     "version": "0.1.0",
     "scripts": {
         "start": "nr1 nerdpack:serve",
@@ -10,7 +10,7 @@
         "eslint-fix": "eslint nerdlets/ --fix"
     },
     "bugs": {
-        "email": "opensource+{{ NERDPACK_NAME }}@newrelic.com"
+        "email": "opensource+nr1-ospo@newrelic.com"
     },
     "dependencies": {
         "@newrelic/nr1-community": "latest",
