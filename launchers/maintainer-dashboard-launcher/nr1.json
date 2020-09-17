@@ -1,0 +1,7 @@
+{
+  "schemaType": "LAUNCHER",
+  "id": "maintainer-dashboard-launcher",
+  "description": "OSPO Maintainer Dashboard",
+  "displayName": "OSPO Maintainer Dashboard",
+  "rootNerdletId": "maintainer-dashboard"
+}
