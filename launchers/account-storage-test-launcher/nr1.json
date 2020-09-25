@@ -1,0 +1,7 @@
+{
+  "schemaType": "LAUNCHER",
+  "id": "account-storage-test-launcher",
+  "description": "Account Storage Test",
+  "displayName": "Account Storage Test",
+  "rootNerdletId": "account-storage-test"
+}

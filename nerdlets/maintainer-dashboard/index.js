@@ -1,5 +1,9 @@
 /* eslint-disable prettier/prettier */
 import React from 'react';
+import { Query, ApolloProvider } from 'react-apollo';
+import ErrorMessage from './graphql/ErrorMessage';
+import { client } from './graphql/ApolloClientInstance';
+import gql from 'graphql-tag';
 import {
   Card,
   CardHeader,
@@ -16,151 +20,89 @@ import {
 const REPOS = [
   'newrelic/newrelic-ruby-agent',
   'newrelic/repolinter-action',
-  // 'kubernetes/kubernetes'
+  'kubernetes/kubernetes'
 ];
-const TOKEN = '<redacted>';
+const TOKEN = '';
 
-function normalizeRepoName(repoName) {
-  return repoName
-    .split('/')
-    .pop()
-    .replace(/-/g, '_');
-}
-
-function makeSearchQuery(repoName, suffix, fragmentName, type, pageToken = null) {
-  return {
-    key: `${normalizeRepoName(repoName)}${suffix}`,
-    query: `${normalizeRepoName(
-      repoName
-    )}${suffix}: search(query: "repo:${repoName} is:${type} is:open no:assignee no:project" type: ISSUE first:100 ${
-      pageToken ? `after:"${pageToken}"` : ''
-    }) {
-    ...${fragmentName}
-    issueCount
-    }`
-  };
-}
-
-function makeStatusQuery(repos, pageTokens = null) {
-  const prFragment = `fragment GetPullRequests on SearchResultItemConnection {
-nodes {
-  ... on PullRequest {
-    title
-    author {
-      login
-      url
-    }
-    repository {
-      name
-      url
-    }
-    number
+const ISSUE_FRAGMENT = gql`
+fragment GetIssueInfo on Issue {
+  title
+  author {
+    login
     url
-    createdAt
-    comments(first: 1) {
-      nodes {
-        ... on IssueComment {
-          author {
-            login
-          }
-          bodyText
+  }
+  repository {
+    name
+    url
+  }
+  number
+  url
+  createdAt
+  comments(first: 1) {
+    nodes {
+      ... on IssueComment {
+        author {
+          login
         }
+        bodyText
       }
     }
   }
-}
-pageInfo {
-  endCursor
-  hasNextPage
-}
-}`
-
-const issueFragment = `fragment GetIssues on SearchResultItemConnection {
-nodes {
-  ... on Issue {
-    title
-    author {
-      login
-      url
-    }
-    repository {
-      name
-      url
-    }
-    number
-    url
-    createdAt
-    comments(first: 1) {
-      nodes {
-        ... on IssueComment {
-          author {
-            login
-          }
-          bodyText
-        }
-      }
-    }
-  }
-}
-pageInfo {
-  endCursor
-  hasNextPage
-}
 }`;
 
-  const validRepos = repos.filter((_r, i) => !pageTokens || pageTokens[i])
-  const issueQueries = validRepos
-    .map((r, i) =>
-    !pageTokens || (pageTokens[i] && pageTokens[i].issue) ?
-      makeSearchQuery(
-        r,
-        '_issue',
-        'GetIssues',
-        'issue',
-        pageTokens && pageTokens[i] && pageTokens[i].issue
-      )
-      : null
-    );
-  const prQueries = repos
-    .filter((_r, i) => !pageTokens || (pageTokens[i] && pageTokens[i].pr))
-    .map((r, i) =>
-      !pageTokens || (pageTokens[i] && pageTokens[i].pr) ?
-      makeSearchQuery(
-        r,
-        '_pr',
-        'GetPullRequests',
-        'pr',
-        pageTokens && pageTokens[i] && pageTokens[i].pr
-      )
-      : null
-    );
-  const joinedQueries = issueQueries
-    .concat(prQueries)
-    .filter(q => q)
-    .map(q => q.query)
-    .join('\n');
-  const meta = Object.fromEntries(repos.map((r, i) => [r, { issueName: issueQueries[i] && issueQueries[i].key, prName: prQueries[i] && prQueries[i].key }]))
-
-  return {
-    query: `${issueQueries.some(i => i) ? issueFragment : ''}
-    ${prQueries.some(p => p) ? prFragment : ''}
-    query {
-      ${joinedQueries}
-      rateLimit {
-        limit
-        cost
-        remaining
-        resetAt
+const PR_FRAGMENT = gql`
+fragment GetPRInfo on PullRequest {
+  title
+  author {
+    login
+    url
+  }
+  repository {
+    name
+    url
+  }
+  number
+  url
+  createdAt
+  comments(first: 1) {
+    nodes {
+      ... on IssueComment {
+        author {
+          login
+        }
+        bodyText
       }
-    }`,
-    meta,
-  };
+    }
+  }
+}`;
+
+const SEARCH_ITEM_QUERY = gql`
+query CountPRSearchResults($query: String!) {
+  search(query: $query, type: ISSUE, first: 100) {
+    nodes {
+      ...GetIssueInfo
+      ...GetPRInfo
+    }
+    issueCount
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+  rateLimit {
+    limit
+    cost
+    remaining
+    resetAt
+  }
 }
+${PR_FRAGMENT}
+${ISSUE_FRAGMENT}`;
 
 class ItemInfo extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { data: props.data, title: props.title };
+    this.state = { data: props.data, totalCount: props.totalCount, title: props.title };
   }
 
   render() {
@@ -169,7 +111,7 @@ class ItemInfo extends React.PureComponent {
         <CardHeader title={this.state.title} />
         <CardBody>
           <HeadingText type={HeadingText.TYPE.HEADING_1}>
-            {this.state.data.length}
+            {this.state.totalCount}
           </HeadingText>
           <Table items={this.state.data}>
             <TableHeader>
@@ -224,82 +166,53 @@ class ItemInfo extends React.PureComponent {
 export default class MaintainerDashboard extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { githubQuery: null };
+    this.state = { issueCount: null, prCount: null, issueList: null, prList: null };
+    this.client = client(TOKEN);
   }
 
   async componentDidMount() {
-    // extract page tokens and pagnate
-    let curRepos = REPOS;
-    let json = null;
-    let curTokens = null;
-    do {
-      const pageQuery = makeStatusQuery(curRepos, curTokens);
-      const pageRes = await fetch('https://api.github.com/graphql', {
-        method: 'POST',
-        body: JSON.stringify({ query: pageQuery.query }),
-        headers: {
-          Authorization: `bearer ${TOKEN}`
-        }
-      });
-      const pageJson = await pageRes.json();
-      if (!pageJson || !pageJson.data)
-        throw new Error(`Bad data: ${JSON.stringify(pageJson)} query: ${pageQuery.query}`);
-      if (!json) json = pageJson
-      else {
-        // merge nodes for each search result
-        for (const repo of curRepos) {
-          const {issueName, prName} = pageQuery.meta[repo];
-          if (issueName) json.data[issueName].nodes = json.data[issueName].nodes.concat(pageJson.data[issueName].nodes);
-          if (prName) json.data[prName].nodes = json.data[prName].nodes.concat(pageJson.data[prName].nodes);
-        }
-      }
-      // get the tokens for the next fetch
-      const tokens = curRepos
-        .map(r => pageQuery.meta[r])
-        .map(({issueName, prName}) => {
-          let issue = null;
-          if (issueName && pageJson.data[issueName].pageInfo.hasNextPage)
-            issue = pageJson.data[issueName].pageInfo.endCursor;
-          let pr = null;
-          if (prName && pageJson.data[prName].pageInfo.hasNextPage)
-            pr = pageJson.data[prName].pageInfo.endCursor;
-          if (issue || pr)
-            return {
-              issue,
-              pr
-            };
-          else
-            return null;
-        })
-      curRepos = curRepos.filter((_r, i) => tokens[i])
-      curTokens = tokens.filter(t => t);
-      // print rate limit
-      console.log(JSON.stringify(pageJson.data.rateLimit));
-    } while(curRepos.length > 0);
-    this.setState({ githubQuery: json });
+    const issueList = async () => {
+      const arr = await Promise.all(REPOS.map(async r => this.client.query({
+        query: SEARCH_ITEM_QUERY, 
+        variables: { query: `repo:${r} is:issue is:open no:assignee no:project` }
+      })));
+      this.setState({ 
+        issueCount: arr.reduce((a, c) => a + c.data.search.issueCount, 0),
+        issueList: arr.reduce((a, c) => a.concat(c.data.search.nodes), []),
+      })
+    };
+    const prList = async () => {
+      const arr = await Promise.all(REPOS.map(async r => this.client.query({
+        query: SEARCH_ITEM_QUERY, 
+        variables: { query: `repo:${r} is:pr is:open no:assignee no:project` }
+      })));
+      this.setState({ 
+        prCount: arr.reduce((a, c) => a + c.data.search.issueCount, 0),
+        prList: arr.reduce((a, c) => a.concat(c.data.search.nodes), [])
+      })
+    };
+    await Promise.all([issueList(), prList()]);
   }
 
   render() {
     return (
       <div>
-        {this.state.githubQuery === null ? (
-          <Spinner />
-        ) : (
-          <div>
-            <ItemInfo
-              title="Pull Requests Need Attention"
-              data={Object.entries(this.state.githubQuery.data)
-                .filter(([k, v]) => k.endsWith('_pr') && v.nodes.length > 0)
-                .flatMap(([k, v]) => v.nodes)}
-            />
-            <ItemInfo
-              title="Issues Need Attention"
-              data={Object.entries(this.state.githubQuery.data)
-                .filter(([k, v]) => k.endsWith('_issue') && v.nodes.length > 0)
-                .flatMap(([k, v]) => v.nodes)}
-            />
-          </div>
-        )}
+        {this.state.prList !== null ?
+          <ItemInfo
+            title="Pull Requests Need Attention"
+            data={this.state.prList}
+            totalCount={this.state.prCount}
+          />
+          : <Spinner />
+         }
+        {this.state.issueList !== null ?
+          <ItemInfo
+            title="Issues Need Attention"
+            data={this.state.issueList}
+            totalCount={this.state.issueCount}
+          />
+          : <Spinner />
+        }
       </div>
     );
   }
