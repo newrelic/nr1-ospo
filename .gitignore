@@ -7,3 +7,4 @@ tmp
 *.tar.gz
 .DS_Store
 .env
+nerdlets/maintainer-dashboard/data/userdata-sample.json
