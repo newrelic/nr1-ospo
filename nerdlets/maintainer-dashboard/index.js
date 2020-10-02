@@ -24,7 +24,8 @@ import {
   Button,
   Tabs,
   TabsItem,
-  BillboardChart
+  BillboardChart,
+  BlockText
 } from 'nr1';
 import PullRequestLogo from './img/git-pull-request-16.svg';
 import IssueLogo from './img/issue-opened-16.svg';
@@ -35,6 +36,20 @@ const RELICS = Object.values(NewRelicUsers)
   .map(u => u.login);
 
 const STALE_TIME = 1000 * 60 * 60 * 24 * 14; // 2 weeks in ms
+
+const KNOWN_LABEL_COLORS = new Map([
+  ['bug', 'd73a4a'],
+  ['documentation', '0075ca'],
+  ['duplicate', 'cfd3d7'],
+  ['enhancement', 'a2eeef'],
+  ['good first issue', '7057ff'],
+  ['help wanted', '008672'],
+  ['invalid', 'e4e669'],
+  ['question', 'd876e3'],
+  ['wontfix', 'ffffff'],
+  ['dependencies', '0366d6'],
+  ['repolinter', 'fbca04']
+])
 
 const REPOS = [
   'newrelic/go-agent',
@@ -101,6 +116,12 @@ fragment GetIssueInfo on Issue {
     name
     url
   }
+  labels(first: 100 orderBy: {field: NAME, direction: ASC}) {
+    nodes {
+      name
+      color
+    }
+  }
   number
   url
   createdAt
@@ -116,6 +137,12 @@ fragment GetPRInfo on PullRequest {
   repository {
     name
     url
+  }
+  labels(first: 100 orderBy: {field: NAME, direction: ASC}) {
+    nodes {
+      name
+      color
+    }
   }
   number
   url
@@ -194,6 +221,16 @@ query SearchResults($queryDefStale: String! $queryMaybeStale: String! $timeSince
 ${PR_FRAGMENT}
 ${ISSUE_FRAGMENT}`;
 
+// stolen from https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+function pickTextColorBasedOnBgColor(bgColor, lightColor, darkColor) {
+  const color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+  const r = parseInt(color.substring(0, 2), 16); // hexToR
+  const g = parseInt(color.substring(2, 4), 16); // hexToG
+  const b = parseInt(color.substring(4, 6), 16); // hexToB
+  return (((r * 0.299) + (g * 0.587) + (b * 0.114)) > 186) ?
+    darkColor : lightColor;
+}
+
 function makeNewSearch(users, repos) {
   return `${repos.map(r => `repo:${r}`).join(' ')} ${users.map(u => `-author:${u} -commenter:${u}`).join(' ')} is:open`
 }
@@ -264,6 +301,11 @@ class IssueTable extends React.Component {
             onClick={(e, s) => this._onClickTableHeaderCell('column_4', e, s)}>
             User
           </TableHeaderCell>
+          <TableHeaderCell 
+            value={({ item }) => item.labels.nodes.map(l => l.name).join(' ')}
+            width="fit-content">
+            Labels
+          </TableHeaderCell>
           <TableHeaderCell value={({ item }) => item.title}>
             Title
           </TableHeaderCell>
@@ -286,6 +328,33 @@ class IssueTable extends React.Component {
               humanizeDuration(Date.now() - new Date(item.createdAt).getTime(), { largest: 1 })
             }</TableRowCell>
             <TableRowCell>{item.author.login}</TableRowCell>
+            <TableRowCell>{
+              item.labels.nodes.map(({name, color}) => {
+                const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
+                return (
+                <span 
+                  key={name}
+                  style={{
+                    padding: '0 7px',
+                    border: '1px solid transparent',
+                    borderRadius: '2em',
+                    backgroundColor: `#${bgColor}`,
+                    marginLeft: '6px'
+                  }}>
+                  <BlockText
+                    type={BlockText.TYPE.PARAGRAPH}
+                    tagType={BlockText.TYPE.P}
+                    style={{
+                      fontSize: '12px',
+                      lineHeight: '18px',
+                      color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
+                    }}>
+                    <strong>{name}</strong>
+                  </BlockText>
+                </span>
+              )}
+              )
+            }</TableRowCell>
             <TableRowCell>{item.title}</TableRowCell>
           </TableRow>
         )}
