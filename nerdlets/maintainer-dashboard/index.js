@@ -5,6 +5,8 @@ import ErrorMessage from './graphql/ErrorMessage';
 import { client } from './graphql/ApolloClientInstance';
 import gql from 'graphql-tag';
 import * as humanizeDuration from 'humanize-duration';
+import BootstrapTable from 'react-bootstrap-table-next';
+import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
 import {
   Card,
   CardHeader,
@@ -105,8 +107,10 @@ const REPOS = [
 ]
 const TOKEN = '<redacted>';
 
+// TODO: split query into search + virtualized table to improve caching
 const ISSUE_FRAGMENT = gql`
 fragment GetIssueInfo on Issue {
+  id
   title
   author {
     login
@@ -129,6 +133,7 @@ fragment GetIssueInfo on Issue {
 
 const PR_FRAGMENT = gql`
 fragment GetPRInfo on PullRequest {
+  id
   title
   author {
     login
@@ -189,6 +194,7 @@ query SearchResults($queryDefStale: String! $queryMaybeStale: String! $timeSince
         timelineItems(since: $timeSince last:100) {
           nodes {
             ... on Comment {
+              id
               author {
                 login
               }
@@ -201,6 +207,7 @@ query SearchResults($queryDefStale: String! $queryMaybeStale: String! $timeSince
         timelineItems(since: $timeSince last:100) {
           nodes {
             ... on Comment {
+              id
               author {
                 login
               }
@@ -243,122 +250,94 @@ function makeMaybeStaleSearch(users, repos, date) {
   return `${repos.map(r => `repo:${r}`).join(' ')} ${users.map(u => `-author:${u} commenter:${u}`).join(' ')} is:open updated:>${date.toISOString()} created:<=${date.toISOString()}`
 }
 
-class IssueTable extends React.Component {
+class IssueTable extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { column_3: TableHeaderCell.SORTING_TYPE.ASCENDING }
-  }
-
-  _onClickTableHeaderCell(key, event, sortingData) {
-    this.setState({ [key]: sortingData.nextSortingType });
   }
 
   render() {
-    return (
-      <Table
-        items={this.props.items}
-      >
-        <TableHeader>
-          <TableHeaderCell 
-            value={({ item }) => item.__typename}
-            width="80px"
-            sortable
-            sortingType={this.state.column_0}
-            sortingOrder={0}
-            onClick={(e, s) => this._onClickTableHeaderCell('column_0', e, s)}>
-            Type
-          </TableHeaderCell>
-          <TableHeaderCell 
-            value={({ item }) => item.url} 
-            width="fit-content">
-            Link
-          </TableHeaderCell>
-          <TableHeaderCell 
-            value={({ item }) => item.repository.name}
-            width="fit-content"
-            sortable
-            sortingType={this.state.column_2}
-            sortingOrder={0}
-            onClick={(e, s) => this._onClickTableHeaderCell('column_2', e, s)}>
-            Repository
-          </TableHeaderCell>
-          <TableHeaderCell 
-            value={({ item }) => item.createdAt}
-            width="fit-content"
-            sortable
-            sortingType={this.state.column_3}
-            sortingFunction={(a, b) => { return new Date(a.value).getTime() - new Date(b.value).getTime() }}
-            sortingOrder={0}
-            onClick={(e, s) => this._onClickTableHeaderCell('column_3', e, s)}>
-            Open
-          </TableHeaderCell>
-          <TableHeaderCell 
-            value={({ item }) => item.author.login} 
-            width="fit-content"
-            sortable
-            sortingType={this.state.column_4}
-            sortingOrder={0}
-            onClick={(e, s) => this._onClickTableHeaderCell('column_4', e, s)}>
-            User
-          </TableHeaderCell>
-          <TableHeaderCell 
-            value={({ item }) => item.labels.nodes.map(l => l.name).join(' ')}
-            width="fit-content">
-            Labels
-          </TableHeaderCell>
-          <TableHeaderCell value={({ item }) => item.title}>
-            Title
-          </TableHeaderCell>
-        </TableHeader>
-        {({ item }) => (
-          <TableRow>
-            <TableRowCell>
-              <img src={item.__typename === "Issue" ? IssueLogo : PullRequestLogo} />
-            </TableRowCell>
-            <TableRowCell>
-              <Button
-                type={Button.TYPE.NORMAL}
-                iconType={Button.ICON_TYPE.INTERFACE__OPERATIONS__EXTERNAL_LINK}
-                onClick={() => window.open(item.url, '_blank')}>
-                  #{item.number}
-              </Button>
-            </TableRowCell>
-            <TableRowCell>{item.repository.name}</TableRowCell>
-            <TableRowCell>{
-              humanizeDuration(Date.now() - new Date(item.createdAt).getTime(), { largest: 1 })
-            }</TableRowCell>
-            <TableRowCell>{item.author.login}</TableRowCell>
-            <TableRowCell>{
-              item.labels.nodes.map(({name, color}) => {
-                const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
-                return (
-                <span 
-                  key={name}
-                  style={{
-                    padding: '0 7px',
-                    border: '1px solid transparent',
-                    borderRadius: '2em',
-                    backgroundColor: `#${bgColor}`,
-                    marginLeft: '6px'
-                  }}>
-                  <BlockText
-                    type={BlockText.TYPE.PARAGRAPH}
-                    tagType={BlockText.TYPE.P}
+    const columns = [
+      {
+        dataField: '__typename',
+        text: 'Type',
+        sort: true,
+        formatter: cell => <img src={cell === "Issue" ? IssueLogo : PullRequestLogo} />
+      },
+      {
+        dataField: 'url',
+        text: 'Link',
+        formatter: (cell, row) => 
+          <Button
+            type={Button.TYPE.NORMAL}
+            iconType={Button.ICON_TYPE.INTERFACE__OPERATIONS__EXTERNAL_LINK}
+            onClick={() => window.open(cell, '_blank')}>
+              #{row.number}
+          </Button>
+      },
+      {
+        dataField: 'repository.name',
+        text: 'Repository',
+        sort: true
+      },
+      {
+        dataField: 'createdAt',
+        text: 'Open',
+        sort: true,
+        type: 'date',
+        formatter: cell => humanizeDuration(Date.now() - new Date(cell).getTime(), { largest: 1 })
+      },
+      {
+        dataField: 'author.login',
+        text: 'User',
+        sort: true
+      },
+      {
+        dataField: 'labels.nodes',
+        text: 'Labels',
+        formatter: cell =>
+          <div style={{ whiteSpace: 'nowrap' }}>
+          {
+            cell.map(({name, color}) => {
+              const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
+              return (
+                  <span
+                    key={name} 
                     style={{
-                      fontSize: '12px',
-                      lineHeight: '18px',
-                      color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
+                      padding: '0 7px',
+                      border: '1px solid transparent',
+                      borderRadius: '2em',
+                      marginRight: '6px',
+                      backgroundColor: `#${bgColor}`,
+                      boxSizing: 'border-box',
+                      display: 'inline-block',
                     }}>
-                    <strong>{name}</strong>
-                  </BlockText>
-                </span>
-              )}
+                    <BlockText
+                      type={BlockText.TYPE.PARAGRAPH}
+                      tagType={BlockText.TYPE.P}
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        lineHeight: '18px',
+                        color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
+                        display: 'inline-block',
+                        boxSizing: 'border-box',
+                      }}>
+                      {name}
+                    </BlockText>
+                  </span>         
               )
-            }</TableRowCell>
-            <TableRowCell>{item.title}</TableRowCell>
-          </TableRow>
-        )}
-      </Table>
+            })
+          }
+          </div>
+      },
+      {
+        dataField: 'title',
+        text: 'Title',
+      },
+    ]
+
+    return (
+      <BootstrapTable keyField='id' data={ this.props.items } columns={ columns } />
     )
   }
 }
