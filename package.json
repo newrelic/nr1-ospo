@@ -26,7 +26,8 @@
         "humanize-duration": "^3.23.1",
         "prop-types": "^15.7.2",
         "react-apollo": "~2",
-        "react-bootstrap-table-next": "^4.0.3"
+        "react-bootstrap-table-next": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2?feat/with-build",
+        "react-bootstrap-table2-filter": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2-filter?feat/with-build"
     },
     "browserslist": [
         "last 2 versions",

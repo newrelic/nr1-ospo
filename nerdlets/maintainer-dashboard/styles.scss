@@ -1,0 +1,19 @@
+@use 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+@use 'react-bootstrap-table2-filter/dist/react-bootstrap-table2-filter.min.css';
+
+.ospo-tableheader {
+  line-height: 30px;
+  vertical-align: top;
+}
+
+.ospo-tableheader > th {
+  padding-top: 10px;
+}
+
+.ospo-tableheader > th > .filter-label > * {
+  margin-top: 6px;
+}
+
+.ospo-tableheader .sr-only { 
+  display: none;
+}

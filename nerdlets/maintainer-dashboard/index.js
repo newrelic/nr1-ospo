@@ -6,7 +6,7 @@ import { client } from './graphql/ApolloClientInstance';
 import gql from 'graphql-tag';
 import * as humanizeDuration from 'humanize-duration';
 import BootstrapTable from 'react-bootstrap-table-next';
-import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+import filterFactory, { textFilter, selectFilter, dateFilter, Comparator, multiSelectFilter } from 'react-bootstrap-table2-filter';
 import {
   Card,
   CardHeader,
@@ -27,7 +27,8 @@ import {
   Tabs,
   TabsItem,
   BillboardChart,
-  BlockText
+  BlockText,
+  Icon
 } from 'nr1';
 import PullRequestLogo from './img/git-pull-request-16.svg';
 import IssueLogo from './img/issue-opened-16.svg';
@@ -58,7 +59,7 @@ const REPOS = [
   'newrelic/infrastructure-agent',
   'newrelic/newrelic-dotnet-agent',
   'newrelic/newrelic-python-agent',
-  'newrelic/newrelic-ruby-agent',
+  /* 'newrelic/newrelic-ruby-agent',
   'newrelic/node-newrelic',
   'newrelic/newrelic-java-agent',
   'newrelic/infrastructure-bundle',
@@ -103,7 +104,7 @@ const REPOS = [
   'newrelic/nri-winservices',
   'newrelic/aws-log-ingestion',
   'newrelic/k8s-metadata-injection',
-  'newrelic/k8s-webhook-cert-manager'
+  'newrelic/k8s-webhook-cert-manager' */
 ]
 const TOKEN = '<redacted>';
 
@@ -256,12 +257,29 @@ class IssueTable extends React.PureComponent {
   }
 
   render() {
+    const sortCaret = order => {
+      let type;
+      if (order === 'asc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_TOP
+      else if (order === 'desc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_BOTTOM
+      else type = Icon.TYPE.INTERFACE__ARROW__ARROW_VERTICAL
+      return <Button sizeType={Button.SIZE_TYPE.SMALL} type={Button.TYPE.PLAIN} iconType={type} style={{ float: 'right' }} />
+    }
+
+    const allLabels = Array.from(new Map(this.props.items.flatMap(i => i.labels.nodes.map(l => [l.name, l]))).values())
+
     const columns = [
       {
         dataField: '__typename',
         text: 'Type',
         sort: true,
-        formatter: cell => <img src={cell === "Issue" ? IssueLogo : PullRequestLogo} />
+        sortCaret,
+        formatter: cell => <img src={cell === "Issue" ? IssueLogo : PullRequestLogo} style={{ marginRight: '40px' }} />,
+        filter: selectFilter({
+          options: {
+            Issue: 'Issue',
+            PullRequest: 'Pull Request'
+          },
+        })
       },
       {
         dataField: 'url',
@@ -277,67 +295,86 @@ class IssueTable extends React.PureComponent {
       {
         dataField: 'repository.name',
         text: 'Repository',
-        sort: true
+        sort: true,
+        sortCaret,
+        filter: textFilter(),
       },
       {
         dataField: 'createdAt',
         text: 'Open',
         sort: true,
+        sortValue: cell => Date.now() - new Date(cell).getTime(),
+        sortCaret,
         type: 'date',
+        filter: dateFilter({}),
         formatter: cell => humanizeDuration(Date.now() - new Date(cell).getTime(), { largest: 1 })
       },
       {
         dataField: 'author.login',
         text: 'User',
-        sort: true
+        sort: true,
+        sortCaret,
+        filter: textFilter(),
       },
       {
         dataField: 'labels.nodes',
         text: 'Labels',
+        filter: multiSelectFilter({
+          comparator: Comparator.LIKE,
+          options: allLabels.reduce((a, {name}) => { a[name] = name; return a; }, {}),
+          withoutEmptyOption: true,
+        }),
+        filterValue: cell => cell.map(({name}) => name),
         formatter: cell =>
-          <div style={{ whiteSpace: 'nowrap' }}>
-          {
-            cell.map(({name, color}) => {
-              const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
-              return (
-                  <span
-                    key={name} 
+          cell.map(({name, color}) => {
+            const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
+            return (
+                <span
+                  key={name} 
+                  style={{
+                    padding: '0 7px',
+                    border: '1px solid transparent',
+                    borderRadius: '2em',
+                    marginRight: '6px',
+                    backgroundColor: `#${bgColor}`,
+                    boxSizing: 'border-box',
+                    display: 'inline-block',
+                  }}>
+                  <BlockText
+                    type={BlockText.TYPE.PARAGRAPH}
+                    tagType={BlockText.TYPE.P}
                     style={{
-                      padding: '0 7px',
-                      border: '1px solid transparent',
-                      borderRadius: '2em',
-                      marginRight: '6px',
-                      backgroundColor: `#${bgColor}`,
-                      boxSizing: 'border-box',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      lineHeight: '18px',
+                      color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
                       display: 'inline-block',
+                      boxSizing: 'border-box',
                     }}>
-                    <BlockText
-                      type={BlockText.TYPE.PARAGRAPH}
-                      tagType={BlockText.TYPE.P}
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        lineHeight: '18px',
-                        color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
-                        display: 'inline-block',
-                        boxSizing: 'border-box',
-                      }}>
-                      {name}
-                    </BlockText>
-                  </span>         
-              )
-            })
-          }
-          </div>
+                    {name}
+                  </BlockText>
+                </span>         
+            )
+          })
       },
       {
         dataField: 'title',
         text: 'Title',
+        filter: textFilter()
       },
     ]
 
     return (
-      <BootstrapTable keyField='id' data={ this.props.items } columns={ columns } />
+      <>
+      <BootstrapTable 
+        keyField='id' 
+        data={ this.props.items }
+        columns={ columns } 
+        defaultSorted={[{ dataField: 'createdAt', order: 'asc' }]}
+        rowStyle={{ whiteSpace: 'nowrap' }}
+        headerClasses='ospo-tableheader'
+        filter={ filterFactory() } />
+      </>
     )
   }
 }
