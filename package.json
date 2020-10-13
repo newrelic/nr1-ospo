@@ -7,7 +7,8 @@
         "start": "nr1 nerdpack:serve",
         "test": "exit 0",
         "eslint-check": "eslint nerdlets/",
-        "eslint-fix": "eslint nerdlets/ --fix"
+        "eslint-fix": "eslint nerdlets/ --fix",
+        "format": "prettier nerdlets/**/*.js --write"
     },
     "bugs": {
         "email": "opensource+nr1-ospo@newrelic.com"
@@ -27,7 +28,8 @@
         "prop-types": "^15.7.2",
         "react-apollo": "~2",
         "react-bootstrap-table-next": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2?feat/with-build",
-        "react-bootstrap-table2-filter": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2-filter?feat/with-build"
+        "react-bootstrap-table2-filter": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2-filter?feat/with-build",
+        "react-feather": "^2.0.8"
     },
     "browserslist": [
         "last 2 versions",

@@ -1,12 +1,15 @@
 /* eslint-disable prettier/prettier */
 import React from 'react';
-import { Query, ApolloProvider } from 'react-apollo';
-import ErrorMessage from './graphql/ErrorMessage';
 import { client } from './graphql/ApolloClientInstance';
-import gql from 'graphql-tag';
 import * as humanizeDuration from 'humanize-duration';
 import BootstrapTable from 'react-bootstrap-table-next';
-import filterFactory, { textFilter, selectFilter, dateFilter, Comparator, multiSelectFilter } from 'react-bootstrap-table2-filter';
+import filterFactory, {
+  textFilter,
+  selectFilter,
+  dateFilter,
+  Comparator,
+  multiSelectFilter,
+} from 'react-bootstrap-table2-filter';
 import {
   Card,
   CardHeader,
@@ -28,17 +31,24 @@ import {
   TabsItem,
   BillboardChart,
   BlockText,
-  Icon
+  Icon,
+  Modal,
+  TextField,
+  Link
 } from 'nr1';
+import { GitHub } from 'react-feather';
+import { getGithubData } from './githubData';
 import PullRequestLogo from './img/git-pull-request-16.svg';
 import IssueLogo from './img/issue-opened-16.svg';
 import NewRelicUsers from './data/userdata-sample.json';
 
+const TOKEN = '<redacted>';
+
+const STALE_TIME = 1000 * 60 * 60 * 24 * 14; // 2 weeks in ms
+
 const RELICS = Object.values(NewRelicUsers)
   .filter(u => u.user_type === 'relic' || u.user_type === 'contractor')
   .map(u => u.login);
-
-const STALE_TIME = 1000 * 60 * 60 * 24 * 14; // 2 weeks in ms
 
 const KNOWN_LABEL_COLORS = new Map([
   ['bug', 'd73a4a'],
@@ -51,8 +61,8 @@ const KNOWN_LABEL_COLORS = new Map([
   ['question', 'd876e3'],
   ['wontfix', 'ffffff'],
   ['dependencies', '0366d6'],
-  ['repolinter', 'fbca04']
-])
+  ['repolinter', 'fbca04'],
+]);
 
 const REPOS = [
   'newrelic/go-agent',
@@ -105,150 +115,15 @@ const REPOS = [
   'newrelic/aws-log-ingestion',
   'newrelic/k8s-metadata-injection',
   'newrelic/k8s-webhook-cert-manager' */
-]
-const TOKEN = '<redacted>';
-
-// TODO: split query into search + virtualized table to improve caching
-const ISSUE_FRAGMENT = gql`
-fragment GetIssueInfo on Issue {
-  id
-  title
-  author {
-    login
-    url
-  }
-  repository {
-    name
-    url
-  }
-  labels(first: 100 orderBy: {field: NAME, direction: ASC}) {
-    nodes {
-      name
-      color
-    }
-  }
-  number
-  url
-  createdAt
-}`;
-
-const PR_FRAGMENT = gql`
-fragment GetPRInfo on PullRequest {
-  id
-  title
-  author {
-    login
-    url
-  }
-  repository {
-    name
-    url
-  }
-  labels(first: 100 orderBy: {field: NAME, direction: ASC}) {
-    nodes {
-      name
-      color
-    }
-  }
-  number
-  url
-  createdAt
-}`;
-
-const SEARCH_NEW_ITEMS_QUERY = gql`
-query SearchResults($query: String!) {
-  search(query: $query, type: ISSUE, first: 100) {
-    nodes {
-      __typename
-      ...GetIssueInfo
-      ...GetPRInfo
-    }
-    issueCount
-  }
-  rateLimit {
-    limit
-    cost
-    remaining
-    resetAt
-  }
-}
-${PR_FRAGMENT}
-${ISSUE_FRAGMENT}`;
-
-const SEARCH_STALE_ITEMS_QUERY = gql`
-query SearchResults($queryDefStale: String! $queryMaybeStale: String! $timeSince: DateTime!) {
-  definitelyStale: search(query: $queryDefStale type: ISSUE first: 100) {
-    issueCount
-    nodes {
-      __typename
-      ...GetIssueInfo
-      ...GetPRInfo
-    }
-  }
-  maybeStale: search(query: $queryMaybeStale type: ISSUE first: 100) {
-    issueCount
-    nodes {
-      __typename
-      ...GetIssueInfo
-      ...GetPRInfo
-      ... on Issue {
-        timelineItems(since: $timeSince last:100) {
-          nodes {
-            ... on Comment {
-              id
-              author {
-                login
-              }
-              updatedAt
-            }
-          }
-        }
-      }
-      ... on PullRequest {
-        timelineItems(since: $timeSince last:100) {
-          nodes {
-            ... on Comment {
-              id
-              author {
-                login
-              }
-              updatedAt
-            }
-          }
-        }
-      }
-    }
-  }
-  rateLimit {
-    limit
-    cost
-    remaining
-    resetAt
-  }
-}
-${PR_FRAGMENT}
-${ISSUE_FRAGMENT}`;
+];
 
 // stolen from https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 function pickTextColorBasedOnBgColor(bgColor, lightColor, darkColor) {
-  const color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+  const color = bgColor.charAt(0) === '#' ? bgColor.substring(1, 7) : bgColor;
   const r = parseInt(color.substring(0, 2), 16); // hexToR
   const g = parseInt(color.substring(2, 4), 16); // hexToG
   const b = parseInt(color.substring(4, 6), 16); // hexToB
-  return (((r * 0.299) + (g * 0.587) + (b * 0.114)) > 186) ?
-    darkColor : lightColor;
-}
-
-function makeNewSearch(users, repos) {
-  return `${repos.map(r => `repo:${r}`).join(' ')} ${users.map(u => `-author:${u} -commenter:${u}`).join(' ')} is:open`
-}
-
-function makeDefStaleSearch(users, repos, date) {
-  return `${repos.map(r => `repo:${r}`).join(' ')} ${users.map(u => `-author:${u} commenter:${u}`).join(' ')} is:open updated:<=${date.toISOString()}`
-}
-
-function makeMaybeStaleSearch(users, repos, date) {
-  return `${repos.map(r => `repo:${r}`).join(' ')} ${users.map(u => `-author:${u} commenter:${u}`).join(' ')} is:open updated:>${date.toISOString()} created:<=${date.toISOString()}`
+  return r * 0.299 + g * 0.587 + b * 0.114 > 186 ? darkColor : lightColor;
 }
 
 class IssueTable extends React.PureComponent {
@@ -259,13 +134,25 @@ class IssueTable extends React.PureComponent {
   render() {
     const sortCaret = order => {
       let type;
-      if (order === 'asc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_TOP
-      else if (order === 'desc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_BOTTOM
-      else type = Icon.TYPE.INTERFACE__ARROW__ARROW_VERTICAL
-      return <Button sizeType={Button.SIZE_TYPE.SMALL} type={Button.TYPE.PLAIN} iconType={type} style={{ float: 'right' }} />
-    }
+      if (order === 'asc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_TOP;
+      else if (order === 'desc')
+        type = Icon.TYPE.INTERFACE__ARROW__ARROW_BOTTOM;
+      else type = Icon.TYPE.INTERFACE__ARROW__ARROW_VERTICAL;
+      return (
+        <Button
+          sizeType={Button.SIZE_TYPE.SMALL}
+          type={Button.TYPE.PLAIN}
+          iconType={type}
+          style={{ float: 'right' }}
+        />
+      );
+    };
 
-    const allLabels = Array.from(new Map(this.props.items.flatMap(i => i.labels.nodes.map(l => [l.name, l]))).values())
+    const allLabels = Array.from(
+      new Map(
+        this.props.items.flatMap(i => i.labels.nodes.map(l => [l.name, l]))
+      ).values()
+    );
 
     const columns = [
       {
@@ -273,24 +160,31 @@ class IssueTable extends React.PureComponent {
         text: 'Type',
         sort: true,
         sortCaret,
-        formatter: cell => <img src={cell === "Issue" ? IssueLogo : PullRequestLogo} style={{ marginRight: '40px' }} />,
+        formatter: cell => (
+          <img
+            src={cell === 'Issue' ? IssueLogo : PullRequestLogo}
+            style={{ marginRight: '40px' }}
+          />
+        ),
         filter: selectFilter({
           options: {
             Issue: 'Issue',
-            PullRequest: 'Pull Request'
+            PullRequest: 'Pull Request',
           },
-        })
+        }),
       },
       {
         dataField: 'url',
         text: 'Link',
-        formatter: (cell, row) => 
+        formatter: (cell, row) => (
           <Button
             type={Button.TYPE.NORMAL}
             iconType={Button.ICON_TYPE.INTERFACE__OPERATIONS__EXTERNAL_LINK}
-            onClick={() => window.open(cell, '_blank')}>
-              #{row.number}
+            onClick={() => window.open(cell, '_blank')}
+          >
+            #{row.number}
           </Button>
+        ),
       },
       {
         dataField: 'repository.name',
@@ -307,7 +201,10 @@ class IssueTable extends React.PureComponent {
         sortCaret,
         type: 'date',
         filter: dateFilter({}),
-        formatter: cell => humanizeDuration(Date.now() - new Date(cell).getTime(), { largest: 1 })
+        formatter: cell =>
+          humanizeDuration(Date.now() - new Date(cell).getTime(), {
+            largest: 1,
+          }),
       },
       {
         dataField: 'author.login',
@@ -321,102 +218,98 @@ class IssueTable extends React.PureComponent {
         text: 'Labels',
         filter: multiSelectFilter({
           comparator: Comparator.LIKE,
-          options: allLabels.reduce((a, {name}) => { a[name] = name; return a; }, {}),
+          options: allLabels.reduce((a, { name }) => {
+            a[name] = name;
+            return a;
+          }, {}),
           withoutEmptyOption: true,
         }),
-        filterValue: cell => cell.map(({name}) => name),
+        filterValue: cell => cell.map(({ name }) => name),
         formatter: cell =>
-          cell.map(({name, color}) => {
-            const bgColor = KNOWN_LABEL_COLORS.has(name) ? KNOWN_LABEL_COLORS.get(name) : color;
+          cell.map(({ name, color }) => {
+            const bgColor = KNOWN_LABEL_COLORS.has(name)
+              ? KNOWN_LABEL_COLORS.get(name)
+              : color;
             return (
-                <span
-                  key={name} 
+              <span
+                key={name}
+                style={{
+                  padding: '0 7px',
+                  border: '1px solid transparent',
+                  borderRadius: '2em',
+                  marginRight: '6px',
+                  backgroundColor: `#${bgColor}`,
+                  boxSizing: 'border-box',
+                  display: 'inline-block',
+                }}
+              >
+                <BlockText
+                  type={BlockText.TYPE.PARAGRAPH}
+                  tagType={BlockText.TYPE.P}
                   style={{
-                    padding: '0 7px',
-                    border: '1px solid transparent',
-                    borderRadius: '2em',
-                    marginRight: '6px',
-                    backgroundColor: `#${bgColor}`,
-                    boxSizing: 'border-box',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    lineHeight: '18px',
+                    color: pickTextColorBasedOnBgColor(
+                      bgColor,
+                      '#ffffff',
+                      '#000000'
+                    ),
                     display: 'inline-block',
-                  }}>
-                  <BlockText
-                    type={BlockText.TYPE.PARAGRAPH}
-                    tagType={BlockText.TYPE.P}
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      lineHeight: '18px',
-                      color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
-                      display: 'inline-block',
-                      boxSizing: 'border-box',
-                    }}>
-                    {name}
-                  </BlockText>
-                </span>         
-            )
-          })
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {name}
+                </BlockText>
+              </span>
+            );
+          }),
       },
       {
         dataField: 'title',
         text: 'Title',
-        filter: textFilter()
+        filter: textFilter(),
       },
-    ]
+    ];
 
     return (
       <>
-      <BootstrapTable 
-        keyField='id' 
-        data={ this.props.items }
-        columns={ columns } 
-        defaultSorted={[{ dataField: 'createdAt', order: 'asc' }]}
-        rowStyle={{ whiteSpace: 'nowrap' }}
-        headerClasses='ospo-tableheader'
-        filter={ filterFactory() } />
+        <BootstrapTable
+          keyField="id"
+          data={this.props.items}
+          columns={columns}
+          defaultSorted={[{ dataField: 'createdAt', order: 'asc' }]}
+          rowStyle={{ whiteSpace: 'nowrap' }}
+          headerClasses="ospo-tableheader"
+          filter={filterFactory()}
+        />
       </>
-    )
+    );
   }
 }
 
 export default class MaintainerDashboard extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { 
+    this.state = {
       newSearchCount: null,
       newSearchItems: null,
       staleSearchCount: null,
       staleSearchItems: null,
+      settingsHidden: true,
     };
     this.client = client(TOKEN);
   }
 
   async componentDidMount() {
-    const staleTime = new Date(Date.now() - STALE_TIME);
-    // fetch all the data
-    const [newRes, staleRes] = await Promise.all([
-      this.client.query({
-        query: SEARCH_NEW_ITEMS_QUERY,
-        variables: { query: makeNewSearch(RELICS, REPOS) }
-      }),
-      this.client.query({
-        query: SEARCH_STALE_ITEMS_QUERY,
-        variables: { queryDefStale: makeDefStaleSearch(RELICS, REPOS, staleTime), queryMaybeStale: makeMaybeStaleSearch(RELICS, REPOS, staleTime), timeSince: staleTime.toISOString() }
-      })
-    ])
-    // filter the stale data to only the actually stale items
-    const nrSet = new Set(RELICS)
-    // if every comment by a relic is stale, then the issue is stale
-    // TODO: filter timeline events for interactions
-    const filteredMaybeItems = staleRes.data.maybeStale.nodes.filter(n =>
-      n.timelineItems.nodes.every(c => (c?.author && nrSet.has(c.author.login)) ? new Date(c.updatedAt) <= staleTime : true))
     // send to UI
-    this.setState({ 
-      newSearchCount: Math.max(newRes.data.search.issueCount, newRes.data.search.nodes.length), 
-      newSearchItems: newRes.data.search.nodes, 
-      staleSearchCount: Math.max(staleRes.data.definitelyStale.issueCount, staleRes.data.definitelyStale.nodes.length) + filteredMaybeItems.length, 
-      staleSearchItems: staleRes.data.definitelyStale.nodes.concat(filteredMaybeItems)
-    })
+    this.setState(
+      await getGithubData(this.client, {
+        repos: REPOS,
+        users: RELICS,
+        staleTime: STALE_TIME,
+      })
+    );
   }
 
   _getNumbers() {
@@ -427,12 +320,10 @@ export default class MaintainerDashboard extends React.Component {
           name: 'New Items',
           viz: 'main',
           units_data: {
-            y: 'COUNT'
-          }
+            y: 'COUNT',
+          },
         },
-        data: [
-          { y: this.state.newSearchCount }
-        ]
+        data: [{ y: this.state.newSearchCount }],
       },
       {
         metadata: {
@@ -440,71 +331,130 @@ export default class MaintainerDashboard extends React.Component {
           name: 'Stale Items',
           viz: 'main',
           units_data: {
-            y: 'COUNT'
-          }
+            y: 'COUNT',
+          },
         },
-        data: [
-          { y: this.state.staleSearchCount }
-        ]
+        data: [{ y: this.state.staleSearchCount }],
       },
-    ]
+    ];
   }
 
   render() {
-    return ( 
+    return (
       <div>
-        {
-          !this.state.newSearchItems || !this.state.staleSearchItems
-          ? <Spinner fillContainer style={{ height: '100vh' }} />
-          : (
+        <Modal hidden={this.state.settingsHidden} onClose={() => this.setState({ settingsHidden: true })}>
+          <Stack
+            fullWidth
+            horizontalType={Stack.HORIZONTAL_TYPE.FILL}
+            directionType={Stack.DIRECTION_TYPE.VERTICAL}
+            gapType={Stack.GAP_TYPE.EXTRA_LARGE}>
+            <StackItem>
+              <HeadingText type={HeadingText.TYPE.HEADING_1}>
+                Dashboard Configuration
+              </HeadingText>
+            </StackItem>
+            <StackItem>
+              <BlockText type={BlockText.TYPE.NORMAL}>
+                Supply a personal access token to allow this dashboard to access GitHub's GraphQL API. The token does not need to have any special permissions.
+                See the{' '}
+                <Link to="https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token">GitHub documentation</Link> for
+                more information on creating and using personal access tokens.
+              </BlockText>
+            </StackItem>
+            <StackItem>
+              <BlockText type={BlockText.TYPE.NORMAL}>
+                Your personal access token will stored in NerdStorage vault, and only be accessible to you. The token can be removed or revoked at any time. 
+              </BlockText>
+            </StackItem>
+            <StackItem>
+              <Stack
+                fullWidth
+                directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
+                verticalType={Stack.VERTICAL_TYPE.CENTER}>
+                <StackItem grow>
+                  <TextField 
+                    label="Personal Access Token" 
+                    type={TextField.TYPE.PASSWORD}
+                    style={{ width: '100%' }}/>
+                </StackItem>
+                <StackItem>
+                  <Button 
+                    type={Button.TYPE.DESTRUCTIVE}
+                    iconType={Icon.TYPE.INTERFACE__OPERATIONS__TRASH}>
+                    Remove Token
+                  </Button>
+                </StackItem>
+              </Stack>
+            </StackItem>
+            <StackItem>
+              <BlockText type={BlockText.TYPE.NORMAL}>
+                Select which repositories you would like this tool to scan.
+              </BlockText>
+            </StackItem>
+            <StackItem>
+              <Table
+                items={[{ first: true, repo: null }].concat(
+                  REPOS.map(repo => ({ repo }))
+                )}
+              >
+                <TableHeader>
+                  <TableHeaderCell
+                    value={() => 'delete'}
+                    width="80px"
+                  />
+                  <TableHeaderCell value={({ item }) => item.repo}>
+                    Repositories
+                  </TableHeaderCell>
+                </TableHeader>
+                {({ item }) =>
+                  item.first ? (
+                    <TableRow>
+                      <TableRowCell />
+                      <TableRowCell>
+                        <Button
+                          type={Button.TYPE.PLAIN}
+                          iconType={
+                            Button.ICON_TYPE.INTERFACE__SIGN__PLUS
+                          }
+                          onClick={() => {}}
+                        >
+                          Add another repository
+                        </Button>
+                      </TableRowCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow>
+                      <TableRowCell>
+                        <Button
+                          type={Button.TYPE.PLAIN}
+                          iconType={
+                            Button.ICON_TYPE
+                              .INTERFACE__OPERATIONS__TRASH
+                          }
+                          onClick={() => {}}
+                        />
+                      </TableRowCell>
+                      <TableRowCell>{item.repo}</TableRowCell>
+                    </TableRow>
+                  )
+                }
+              </Table>
+            </StackItem>
+          </Stack>
+        </Modal>
+        {!this.state.newSearchItems || !this.state.staleSearchItems ? (
+          <Spinner fillContainer style={{ height: '100vh' }} />
+        ) : (
+          <>
             <Card>
               <CardBody>
                 <Stack
                   fullWidth
                   horizontalType={Stack.HORIZONTAL_TYPE.FILL}
-                  directionType={Stack.DIRECTION_TYPE.VERTICAL}>
+                  directionType={Stack.DIRECTION_TYPE.VERTICAL}
+                >
                   <StackItem>
-                    <Grid>
-                      <GridItem columnSpan={3}>
-                        <Table compact style={{height: '200px'}} items={[{ first: true, repo: null }].concat(REPOS.map(repo => { return { repo }}))}>
-                          <TableHeader>
-                            <TableHeaderCell value={() => 'delete'} width='80px'/>
-                            <TableHeaderCell value={({ item }) => item.repo}>
-                              Repositories
-                            </TableHeaderCell>
-                          </TableHeader>
-                          {({ item }) => item.first
-                           ? (
-                            <TableRow>
-                              <TableRowCell />
-                              <TableRowCell>
-                                <Button
-                                  type={Button.TYPE.PLAIN}
-                                  iconType={Button.ICON_TYPE.INTERFACE__SIGN__PLUS}
-                                  onClick={() => {}}>
-                                  Add another repository
-                                </Button>
-                              </TableRowCell>
-                            </TableRow>
-                           ) : (
-                            <TableRow>
-                              <TableRowCell>
-                              <Button
-                                  type={Button.TYPE.PLAIN}
-                                  iconType={Button.ICON_TYPE.INTERFACE__OPERATIONS__TRASH}
-                                  onClick={() => {}} />
-                              </TableRowCell>
-                              <TableRowCell>
-                                {item.repo}
-                              </TableRowCell>
-                            </TableRow>
-                          )}
-                        </Table>
-                      </GridItem>
-                      <GridItem columnSpan={9}>
-                        <BillboardChart data={this._getNumbers()} fullWidth />
-                      </GridItem>
-                    </Grid>
+                    <BillboardChart data={this._getNumbers()} fullWidth />
                   </StackItem>
                   <StackItem>
                     <Tabs default="new">
@@ -512,15 +462,39 @@ export default class MaintainerDashboard extends React.Component {
                         <IssueTable items={this.state.newSearchItems} />
                       </TabsItem>
                       <TabsItem label="Stale Items" value="stale">
-                      <IssueTable items={this.state.staleSearchItems} />
+                        <IssueTable items={this.state.staleSearchItems} />
                       </TabsItem>
                     </Tabs>
                   </StackItem>
                 </Stack>
               </CardBody>
             </Card>
-          )
-        }
+            <Stack
+              style={{
+                position: 'absolute',
+                right: '24px',
+                top: '8px' 
+              }}
+              directionType={Stack.DIRECTION_TYPE.HORIZONTAL}>
+              <StackItem>
+                <Button 
+                  iconType={Icon.TYPE.PROFILES__EVENTS__COMMENT__A_EDIT}
+                  type={Button.TYPE.PLAIN}
+                  to="https://github.com/newrelic/nr1-ospo/issues/new/choose">
+                  Submit an Issue
+                </Button>
+              </StackItem>
+              <StackItem>
+                <Button 
+                  iconType={Icon.TYPE.INTERFACE__OPERATIONS__CONFIGURE}
+                  type={Button.TYPE.NORMAL}
+                  onClick={() => this.setState({ settingsHidden: false })}>
+                  Configure
+                </Button>
+              </StackItem>
+            </Stack>  
+          </>
+        )}
       </div>
     );
   }
