@@ -14,7 +14,7 @@
         "email": "opensource+nr1-ospo@newrelic.com"
     },
     "dependencies": {
-        "@newrelic/nr1-community": "latest",
+        "@newrelic/nr1-community": "^1.3.0-alpha.5",
         "apollo-cache-inmemory": "^1.6.5",
         "apollo-client": "^2.6.8",
         "apollo-link": "^1.2.13",
@@ -29,7 +29,8 @@
         "react-apollo": "~2",
         "react-bootstrap-table-next": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2?feat/with-build",
         "react-bootstrap-table2-filter": "https://gitpkg.now.sh/prototypicalpro/react-bootstrap-table2/packages/react-bootstrap-table2-filter?feat/with-build",
-        "react-feather": "^2.0.8"
+        "react-widgets": "^4.6.0",
+        "react-widgets-simple-number": "^4.1.25"
     },
     "browserslist": [
         "last 2 versions",

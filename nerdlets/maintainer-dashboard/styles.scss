@@ -1,5 +1,8 @@
-@use 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
-@use 'react-bootstrap-table2-filter/dist/react-bootstrap-table2-filter.min.css';
+@import '~react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+@import '~react-bootstrap-table2-filter/dist/react-bootstrap-table2-filter.min.css';
+$font-path: '~react-widgets/lib/fonts';
+$img-path: '~react-widgets/lib/img';
+@import '~react-widgets/lib/scss/react-widgets';
 
 .ospo-tableheader {
   line-height: 30px;
