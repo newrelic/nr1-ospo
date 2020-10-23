@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { BlockText } from 'nr1';
 
 export const KNOWN_LABEL_COLORS = new Map([
@@ -25,6 +26,11 @@ function pickTextColorBasedOnBgColor(bgColor, lightColor, darkColor) {
 }
 
 export class IssueLabel extends React.PureComponent {
+  static propTypes = {
+    name: PropTypes.string,
+    color: PropTypes.string
+  };
+
   constructor(props) {
     super(props);
   }

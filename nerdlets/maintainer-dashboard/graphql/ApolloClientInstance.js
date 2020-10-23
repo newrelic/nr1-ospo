@@ -35,7 +35,7 @@ export const client = userToken => {
       new HttpLink({
         uri: GITHUB_BASE_URL,
         headers: {
-          authorization: `Bearer ${userToken}`
+          authorization: userToken ? `Bearer ${userToken}` : undefined
         }
       })
     ]),

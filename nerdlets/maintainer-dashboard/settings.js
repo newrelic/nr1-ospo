@@ -1,5 +1,5 @@
-import gql from 'graphql-tag';
 import React from 'react';
+import gql from 'graphql-tag';
 import {
   HeadingText,
   Stack,
@@ -14,13 +14,7 @@ import {
 } from 'nr1';
 import { Multiselect } from 'react-widgets';
 import { IssueLabel } from './issueLabel';
-import {
-  writeToken,
-  writeSettings,
-  readToken,
-  readSettings,
-  removeToken,
-} from './storageUtil';
+import UserSettingsQuery from './storageUtil';
 
 const GET_CUR_USER_INFO = gql`
   query($repoCursor: String) {
@@ -46,8 +40,8 @@ export default class SettingsUI extends React.Component {
       repoValue: [],
       labelValue: [],
       userValue: [],
-      timeUnit: 60,
-      timeValue: 0,
+      timeUnit: 1000 * 60,
+      timeValue: '',
       token: '',
       patStatus: {},
       submitting: false
@@ -60,8 +54,8 @@ export default class SettingsUI extends React.Component {
 
   async componentDidMount() {
     const [prevToken, prevSettings] = await Promise.all([
-      readToken(),
-      readSettings()
+      UserSettingsQuery.readToken(),
+      UserSettingsQuery.readSettings()
     ]);
     // add saved values back into settings
     // TODO: do not write the previous token back to the input form, as it may be unsafe
@@ -71,7 +65,7 @@ export default class SettingsUI extends React.Component {
         repoValue: repos || [],
         labelValue: labels || [],
         userValue: users || [],
-        timeValue: staleTime ? staleTime / 60 : 0,
+        timeValue: staleTime ? (staleTime / (60 * 1000)).toString() : '',
         patStatus: prevToken ? { valid: true } : {},
         token: prevToken || ''
       });
@@ -152,7 +146,7 @@ export default class SettingsUI extends React.Component {
 
   async handlePATRemove() {
     this.setState({ token: '', patStatus: {} });
-    await removeToken();
+    await UserSettingsQuery.removeToken();
   }
 
   async handleSubmit() {
@@ -161,12 +155,12 @@ export default class SettingsUI extends React.Component {
     // write the token to NerdVault
     // write the everything else to UserStorage
     await Promise.all([
-      writeToken(this.state.token),
-      writeSettings({
+      UserSettingsQuery.writeToken(this.state.token),
+      UserSettingsQuery.writeSettings({
         repos: this.state.repoValue,
         users: this.state.userValue,
         labels: this.state.labelValue,
-        staleTime: this.state.timeValue * this.state.timeUnit
+        staleTime: parseFloat(this.state.timeValue) * this.state.timeUnit
       })
     ]);
     // tell the user we're done
@@ -179,14 +173,14 @@ export default class SettingsUI extends React.Component {
     if (!this.state.patStatus.valid) return 'Please enter a valid PAT';
     if (this.state.repoValue.length === 0)
       return 'Please select at least one repository';
-    else if (isNaN(this.state.timeValue) || this.state.timeValue === 0)
+    else if (!this.state.timeValue || isNaN(parseFloat(this.state.timeValue)))
       return 'Please enter a valid stale time';
     return null;
   }
 
   render() {
     return (
-      <form>
+      <form style={this.props.style || {}}>
         <Stack
           fullWidth
           horizontalType={Stack.HORIZONTAL_TYPE.FILL}
@@ -255,14 +249,25 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
-              Select which repositories you would like this tool to scan.
+              Select which repositories you would like this tool to scan. To add
+              options not on the list, you can enter comma or space separated
+              repository names to the filter and press enter.
             </BlockText>
           </StackItem>
           <StackItem>
             <Multiselect
               onCreate={name =>
                 this.setState(({ repoValue }) => ({
-                  repoValue: repoValue.concat([name])
+                  repoValue: name
+                    .split(/(,\s*)|\s+/g)
+                    .map(n => n && n.trim())
+                    .filter(
+                      n =>
+                        n &&
+                        !repoValue.includes(n) &&
+                        /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n)
+                    )
+                    .concat(repoValue)
                 }))
               }
               onChange={value => this.setState({ repoValue: value })}
@@ -279,12 +284,18 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <Multiselect
-              onCreate={name =>
+              onCreate={({ name }) =>
                 this.setState(({ labelValue }) => ({
                   labelValue: labelValue.concat([name])
                 }))
               }
-              onChange={value => this.setState({ labelValue: value })}
+              onChange={value =>
+                this.setState({
+                  labelValue: value.map(v =>
+                    typeof v !== 'string' ? v.name : v
+                  )
+                })
+              }
               value={this.state.labelValue}
               placeholder="Select labels to filter"
               data={this.props.labelOptions}
@@ -298,7 +309,11 @@ export default class SettingsUI extends React.Component {
             <Multiselect
               onCreate={name =>
                 this.setState(({ userValue }) => ({
-                  userValue: userValue.concat([name])
+                  userValue: name
+                    .split(/(,\s*)|\s+/g)
+                    .map(n => n && n.trim())
+                    .filter(n => n && !userValue.includes(n))
+                    .concat(userValue)
                 }))
               }
               onChange={value => this.setState({ userValue: value })}
@@ -325,14 +340,17 @@ export default class SettingsUI extends React.Component {
                   placeholder="Enter a number"
                   style={{ width: '100%' }}
                   onChange={({ target }) =>
-                    this.setState({ timeValue: parseFloat(target.value) })
+                    this.setState({
+                      timeValue: target.value
+                    })
                   }
                   invalid={
-                    this.state.timeValue !== null && isNaN(this.state.timeValue)
+                    this.state.timeValue !== '' &&
+                    isNaN(parseFloat(this.state.timeValue))
                       ? 'Value is not a number'
                       : false
                   }
-                  value={this.state.timeValue.toString()}
+                  value={this.state.timeValue}
                 />
               </StackItem>
               <StackItem grow>
@@ -340,10 +358,10 @@ export default class SettingsUI extends React.Component {
                   onChange={(evt, value) => this.setState({ timeUnit: value })}
                   value={this.state.timeUnit}
                 >
-                  <SelectItem value={60}>Minutes</SelectItem>
-                  <SelectItem value={60 * 60}>Hours</SelectItem>
-                  <SelectItem value={60 * 60 * 24}>Days</SelectItem>
-                  <SelectItem value={60 * 60 * 24 * 7}>Weeks</SelectItem>
+                  <SelectItem value={1000 * 60}>Minutes</SelectItem>
+                  <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
+                  <SelectItem value={1000 * 60 * 60 * 24}>Days</SelectItem>
+                  <SelectItem value={1000 * 60 * 60 * 24 * 7}>Weeks</SelectItem>
                 </Select>
               </StackItem>
             </Stack>

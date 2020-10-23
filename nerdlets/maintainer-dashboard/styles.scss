@@ -20,3 +20,11 @@ $img-path: '~react-widgets/lib/img';
 .ospo-tableheader .sr-only { 
   display: none;
 }
+
+#root {
+  overflow: visible;
+}
+
+.ospo-tableheader .filter.date-filter {
+  flex-flow: column;
+}
