@@ -1,5 +1,4 @@
 import React from 'react';
-import gql from 'graphql-tag';
 import {
   HeadingText,
   Stack,
@@ -14,24 +13,8 @@ import {
 } from 'nr1';
 import { Multiselect } from 'react-widgets';
 import { IssueLabel } from './issueLabel';
-import UserSettingsQuery from './storageUtil';
-
-const GET_CUR_USER_INFO = gql`
-  query($repoCursor: String) {
-    viewer {
-      login
-      repositories(
-        affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]
-        first: 100
-        after: $repoCursor
-      ) {
-        nodes {
-          nameWithOwner
-        }
-      }
-    }
-  }
-`;
+import { getUserInfo } from '../graphql/githubData';
+import UserSettingsQuery from '../util/storageUtil';
 
 export default class SettingsUI extends React.Component {
   static splitRepositoryNames(searchTerm) {
@@ -105,49 +88,39 @@ export default class SettingsUI extends React.Component {
     });
     // test the token with a user information query
     const curNum = ++this.curFetchIndex;
-    return this.props.client
-      .query({
-        query: GET_CUR_USER_INFO,
-        fetchPolicy: 'network-only',
-        context: {
-          headers: {
-            authorization: `Bearer ${token}`,
+    try {
+      const data = await getUserInfo(this.props.client, this.state.token);
+      // prevent race conditions
+      if (curNum === this.curFetchIndex) {
+        this.setState({
+          patStatus: {
+            valid: true,
+            userName: data?.viewer?.login,
+            repoOptions: data?.viewer?.repositories?.nodes?.map?.(
+              ({ nameWithOwner }) => nameWithOwner
+            ),
           },
-        },
-      })
-      .then(({ data }) => {
-        // prevent race conditions
-        if (curNum === this.curFetchIndex) {
+        });
+      }
+    } catch (e) {
+      // prevent race condition
+      if (curNum === this.curFetchIndex) {
+        if (e?.networkError?.statusCode === 401)
           this.setState({
             patStatus: {
-              valid: true,
-              userName: data?.viewer?.login,
-              repoOptions: data?.viewer?.repositories?.nodes?.map?.(
-                ({ nameWithOwner }) => nameWithOwner
-              ),
+              valid: false,
+              message: 'Token returned authorization error',
             },
           });
-        }
-      })
-      .catch((e) => {
-        // prevent race condition
-        if (curNum === this.curFetchIndex) {
-          if (e?.networkError?.statusCode === 401)
-            this.setState({
-              patStatus: {
-                valid: false,
-                message: 'Token returned authorization error',
-              },
-            });
-          else
-            this.setState({
-              patStatus: {
-                valid: false,
-                message: 'Unknown GitHub API error',
-              },
-            });
-        }
-      });
+        else
+          this.setState({
+            patStatus: {
+              valid: false,
+              message: 'Unknown GitHub API error',
+            },
+          });
+      }
+    }
   }
 
   handlePATToken(event) {

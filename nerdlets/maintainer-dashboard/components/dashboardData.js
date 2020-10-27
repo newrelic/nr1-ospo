@@ -1,14 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import * as humanizeDuration from 'humanize-duration';
-import BootstrapTable from 'react-bootstrap-table-next';
-import filterFactory, {
-  textFilter,
-  selectFilter,
-  dateFilter,
-  Comparator,
-  multiSelectFilter,
-} from 'react-bootstrap-table2-filter';
 import {
   Spinner,
   Stack,
@@ -18,7 +10,6 @@ import {
   TableHeaderCell,
   TableRow,
   TableRowCell,
-  Button,
   Tabs,
   TabsItem,
   BillboardChart,
@@ -26,10 +17,12 @@ import {
   Link,
   Tooltip,
 } from 'nr1';
-import { getGithubData } from './githubData';
+import { findDashboardItems } from '../graphql/githubData';
 import { IssueTable } from './issueTable';
 
-export default class Dashboard extends React.Component {
+// TODO: figure out how to fix the tab labels from duplicating the key
+
+export default class DashboardData extends React.Component {
   static propTypes = {
     client: PropTypes.object,
     scanRepos: PropTypes.arrayOf(PropTypes.string),
@@ -52,7 +45,7 @@ export default class Dashboard extends React.Component {
   async componentDidMount() {
     // send to UI
     this.setState(
-      await getGithubData(this.props.client, {
+      await findDashboardItems(this.props.client, {
         scanRepos: this.props.scanRepos,
         companyUsers: this.props.companyUsers.concat(this.props.ignoreUsers),
         ignoreLabels: this.props.ignoreLabels,

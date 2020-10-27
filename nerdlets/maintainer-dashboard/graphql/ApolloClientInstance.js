@@ -23,7 +23,7 @@ const GITHUB_BASE_URL = 'https://api.github.com/graphql';
 export const client = (userToken) => {
   return new ApolloClient({
     link: ApolloLink.from([
-      // new RetryLink(),
+      new RetryLink(),
       onError(({ graphQLErrors, networkError }) => {
         if (graphQLErrors) {
           console.error('GRAPHQL_ERR::>', graphQLErrors);
