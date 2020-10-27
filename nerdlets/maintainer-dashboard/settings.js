@@ -34,6 +34,28 @@ const GET_CUR_USER_INFO = gql`
 `;
 
 export default class SettingsUI extends React.Component {
+  static splitRepositoryNames(searchTerm) {
+    return Array.from(
+      new Set(
+        searchTerm
+          .split(/(,\s*)|\s+/g)
+          .map(n => n && n.trim())
+          .filter(n => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
+      )
+    );
+  }
+
+  static splitLogins(searchTerm) {
+    return Array.from(
+      new Set(
+        searchTerm
+          .split(/(,\s*)|\s+/g)
+          .map(n => n && n.trim())
+          .filter(n => n)
+      )
+    );
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -185,11 +207,16 @@ export default class SettingsUI extends React.Component {
           fullWidth
           horizontalType={Stack.HORIZONTAL_TYPE.FILL}
           directionType={Stack.DIRECTION_TYPE.VERTICAL}
-          gapType={Stack.GAP_TYPE.EXTRA_LARGE}
+          gapType={Stack.GAP_TYPE.LARGE}
         >
           <StackItem>
             <HeadingText type={HeadingText.TYPE.HEADING_1}>
               Dashboard Configuration
+            </HeadingText>
+          </StackItem>
+          <StackItem>
+            <HeadingText type={HeadingText.TYPE.HEADING_3}>
+              Personal Access Token
             </HeadingText>
           </StackItem>
           <StackItem>
@@ -218,8 +245,8 @@ export default class SettingsUI extends React.Component {
             >
               <StackItem grow>
                 <TextField
-                  label="Personal Access Token"
                   type={TextField.TYPE.PASSWORD}
+                  placeholder="e.g. 58ac3310..."
                   style={{ width: '100%' }}
                   value={this.state.token}
                   onChange={this.handlePATToken}
@@ -248,123 +275,188 @@ export default class SettingsUI extends React.Component {
             ) : null}
           </StackItem>
           <StackItem>
+            <HeadingText type={HeadingText.TYPE.HEADING_3}>
+              Repositories
+            </HeadingText>
+          </StackItem>
+          <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
               Select which repositories you would like this tool to scan. To add
-              options not on the list, you can enter comma or space separated
-              repository names to the filter and press enter.
+              options not on the list, enter comma or space separated repository
+              names in the box and press enter.
             </BlockText>
           </StackItem>
           <StackItem>
             <Multiselect
               onCreate={name =>
                 this.setState(({ repoValue }) => ({
-                  repoValue: name
-                    .split(/(,\s*)|\s+/g)
-                    .map(n => n && n.trim())
-                    .filter(
-                      n =>
-                        n &&
-                        !repoValue.includes(n) &&
-                        /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n)
-                    )
+                  repoValue: SettingsUI.splitRepositoryNames(name)
+                    .filter(n => !repoValue.includes(n))
                     .concat(repoValue)
                 }))
               }
               onChange={value => this.setState({ repoValue: value })}
               value={this.state.repoValue}
               data={this.state.patStatus.repoOptions}
-              placeholder="Add repositories to monitor (ex. newrelic/nr1-ospo)"
+              placeholder="Enter a repository name (e.g. newrelic/nr1-ospo)"
+              filter="contains"
+              messages={{
+                emptyFilter:
+                  'Did not match any suggested repositories to that name.',
+                emptyList:
+                  'Enter a personal access token to see suggested repositories, or start typing to add your own.',
+                createOption({ searchTerm }) {
+                  const split = SettingsUI.splitRepositoryNames(searchTerm);
+                  if (!split.length)
+                    return 'Invalid repository name (make sure to include the organization)';
+                  if (split.length === 1) return `Add repository ${split[0]}`;
+                  return `Add repositories ${split.join(', ')}`;
+                }
+              }}
             />
           </StackItem>
           <StackItem>
-            <BlockText type={BlockText.TYPE.NORMAL}>
-              Optionally select users or labels this tool should ignore items
-              from.
-            </BlockText>
-          </StackItem>
-          <StackItem>
-            <Multiselect
-              onCreate={({ name }) =>
-                this.setState(({ labelValue }) => ({
-                  labelValue: labelValue.concat([name])
-                }))
-              }
-              onChange={value =>
-                this.setState({
-                  labelValue: value.map(v =>
-                    typeof v !== 'string' ? v.name : v
-                  )
-                })
-              }
-              value={this.state.labelValue}
-              placeholder="Select labels to filter"
-              data={this.props.labelOptions}
-              textField="name"
-              itemComponent={({ item }) => (
-                <IssueLabel name={item.name} color={item.color} />
-              )}
-            />
-          </StackItem>
-          <StackItem>
-            <Multiselect
-              onCreate={name =>
-                this.setState(({ userValue }) => ({
-                  userValue: name
-                    .split(/(,\s*)|\s+/g)
-                    .map(n => n && n.trim())
-                    .filter(n => n && !userValue.includes(n))
-                    .concat(userValue)
-                }))
-              }
-              onChange={value => this.setState({ userValue: value })}
-              value={this.state.userValue}
-              data={[]}
-              placeholder="Select users to filter"
-            />
-          </StackItem>
-          <StackItem>
-            <BlockText type={BlockText.TYPE.NORMAL}>
-              Optionally adjust the time required for an item to be considered
-              stale.
-            </BlockText>
-          </StackItem>
-          <StackItem>
-            <Stack
-              fullWidth
-              directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
-              verticalType={Stack.VERTICAL_TYPE.BOTTOM}
-            >
-              <StackItem grow>
-                <TextField
-                  label="Stale Time"
-                  placeholder="Enter a number"
-                  style={{ width: '100%' }}
-                  onChange={({ target }) =>
-                    this.setState({
-                      timeValue: target.value
-                    })
-                  }
-                  invalid={
-                    this.state.timeValue !== '' &&
-                    isNaN(parseFloat(this.state.timeValue))
-                      ? 'Value is not a number'
-                      : false
-                  }
-                  value={this.state.timeValue}
-                />
-              </StackItem>
-              <StackItem grow>
-                <Select
-                  onChange={(evt, value) => this.setState({ timeUnit: value })}
-                  value={this.state.timeUnit}
+            <details>
+              <summary>
+                <BlockText
+                  style={{ display: 'inline-block' }}
+                  spacingType={[
+                    HeadingText.SPACING_TYPE.OMIT,
+                    HeadingText.SPACING_TYPE.OMIT,
+                    HeadingText.SPACING_TYPE.SMALL,
+                    HeadingText.SPACING_TYPE.SMALL
+                  ]}
                 >
-                  <SelectItem value={1000 * 60}>Minutes</SelectItem>
-                  <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
-                  <SelectItem value={1000 * 60 * 60 * 24}>Days</SelectItem>
-                  <SelectItem value={1000 * 60 * 60 * 24 * 7}>Weeks</SelectItem>
-                </Select>
-              </StackItem>
-            </Stack>
+                  Advanced Configuration
+                </BlockText>
+              </summary>
+              <Stack
+                fullWidth
+                horizontalType={Stack.HORIZONTAL_TYPE.FILL}
+                directionType={Stack.DIRECTION_TYPE.VERTICAL}
+                gapType={Stack.GAP_TYPE.LARGE}
+              >
+                <StackItem>
+                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                    Denylist Labels
+                  </HeadingText>
+                </StackItem>
+                <StackItem>
+                  <BlockText type={BlockText.TYPE.NORMAL}>
+                    Optionally select labels this tool should denylist. Issues
+                    or PRs with the selected labels will not be shown.
+                  </BlockText>
+                </StackItem>
+                <StackItem>
+                  <Multiselect
+                    onCreate={({ name }) =>
+                      this.setState(({ labelValue }) => ({
+                        labelValue: labelValue.concat([name])
+                      }))
+                    }
+                    onChange={value =>
+                      this.setState({
+                        labelValue: value.map(v =>
+                          typeof v !== 'string' ? v.name : v
+                        )
+                      })
+                    }
+                    value={this.state.labelValue}
+                    placeholder="Select labels to filter"
+                    data={this.props.labelOptions}
+                    textField="name"
+                    itemComponent={({ item }) => (
+                      <IssueLabel name={item.name} color={item.color} />
+                    )}
+                    filter="contains"
+                  />
+                </StackItem>
+                <StackItem>
+                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                    Employee GitHub Usernames
+                  </HeadingText>
+                </StackItem>
+                <StackItem>
+                  <BlockText type={BlockText.TYPE.NORMAL}>
+                    This dashboard pulls a list of current employee GitHub
+                    handles from shared account storage, using it to determine
+                    if an Issue or PR has received a response from inside the
+                    company. You can specify additional GitHub usernames this
+                    dashboard should treat as employees here.
+                  </BlockText>
+                </StackItem>
+                <StackItem>
+                  <Multiselect
+                    onCreate={name =>
+                      this.setState(({ userValue }) => ({
+                        userValue: SettingsUI.splitLogins(name)
+                          .filter(n => !userValue.includes(n))
+                          .concat(userValue)
+                      }))
+                    }
+                    onChange={value => this.setState({ userValue: value })}
+                    value={this.state.userValue}
+                    data={[]}
+                    placeholder="Enter additional GitHub usernames"
+                  />
+                </StackItem>
+                <StackItem>
+                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                    Stale Duration Threshold
+                  </HeadingText>
+                </StackItem>
+                <StackItem>
+                  <BlockText type={BlockText.TYPE.NORMAL}>
+                    Optionally adjust the duration of time an Issue and PR
+                    should go without activity before it is considered stale.
+                    The suggested time is around 2 weeks.
+                  </BlockText>
+                </StackItem>
+                <StackItem>
+                  <Stack
+                    fullWidth
+                    directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
+                    verticalType={Stack.VERTICAL_TYPE.BOTTOM}
+                  >
+                    <StackItem grow>
+                      <TextField
+                        placeholder="Enter a number"
+                        style={{ width: '100%' }}
+                        onChange={({ target }) =>
+                          this.setState({
+                            timeValue: target.value
+                          })
+                        }
+                        invalid={
+                          this.state.timeValue !== '' &&
+                          isNaN(parseFloat(this.state.timeValue))
+                            ? 'Value is not a number'
+                            : false
+                        }
+                        value={this.state.timeValue}
+                      />
+                    </StackItem>
+                    <StackItem grow>
+                      <Select
+                        onChange={(evt, value) =>
+                          this.setState({ timeUnit: value })
+                        }
+                        value={this.state.timeUnit}
+                      >
+                        <SelectItem value={1000 * 60}>Minutes</SelectItem>
+                        <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
+                        <SelectItem value={1000 * 60 * 60 * 24}>
+                          Days
+                        </SelectItem>
+                        <SelectItem value={1000 * 60 * 60 * 24 * 7}>
+                          Weeks
+                        </SelectItem>
+                      </Select>
+                    </StackItem>
+                  </Stack>
+                </StackItem>
+              </Stack>
+            </details>
           </StackItem>
           <StackItem>
             <Button
