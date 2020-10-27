@@ -10,7 +10,7 @@ import {
   TextField,
   Link,
   Select,
-  SelectItem
+  SelectItem,
 } from 'nr1';
 import { Multiselect } from 'react-widgets';
 import { IssueLabel } from './issueLabel';
@@ -39,8 +39,8 @@ export default class SettingsUI extends React.Component {
       new Set(
         searchTerm
           .split(/(,\s*)|\s+/g)
-          .map(n => n && n.trim())
-          .filter(n => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
+          .map((n) => n && n.trim())
+          .filter((n) => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
       )
     );
   }
@@ -50,8 +50,8 @@ export default class SettingsUI extends React.Component {
       new Set(
         searchTerm
           .split(/(,\s*)|\s+/g)
-          .map(n => n && n.trim())
-          .filter(n => n)
+          .map((n) => n && n.trim())
+          .filter((n) => n)
       )
     );
   }
@@ -66,7 +66,7 @@ export default class SettingsUI extends React.Component {
       timeValue: '',
       token: '',
       patStatus: {},
-      submitting: false
+      submitting: false,
     };
     this.handlePATToken = this.handlePATToken.bind(this);
     this.handlePATRemove = this.handlePATRemove.bind(this);
@@ -77,7 +77,7 @@ export default class SettingsUI extends React.Component {
   async componentDidMount() {
     const [prevToken, prevSettings] = await Promise.all([
       UserSettingsQuery.readToken(),
-      UserSettingsQuery.readSettings()
+      UserSettingsQuery.readSettings(),
     ]);
     // add saved values back into settings
     // TODO: do not write the previous token back to the input form, as it may be unsafe
@@ -89,7 +89,7 @@ export default class SettingsUI extends React.Component {
         userValue: users || [],
         timeValue: staleTime ? (staleTime / (60 * 1000)).toString() : '',
         patStatus: prevToken ? { valid: true } : {},
-        token: prevToken || ''
+        token: prevToken || '',
       });
     }
     // re-test the PAT
@@ -100,8 +100,8 @@ export default class SettingsUI extends React.Component {
     // indicate we are currently testing the token
     this.setState({
       patStatus: {
-        testing: true
-      }
+        testing: true,
+      },
     });
     // test the token with a user information query
     const curNum = ++this.curFetchIndex;
@@ -111,9 +111,9 @@ export default class SettingsUI extends React.Component {
         fetchPolicy: 'network-only',
         context: {
           headers: {
-            authorization: `Bearer ${token}`
-          }
-        }
+            authorization: `Bearer ${token}`,
+          },
+        },
       })
       .then(({ data }) => {
         // prevent race conditions
@@ -124,27 +124,27 @@ export default class SettingsUI extends React.Component {
               userName: data?.viewer?.login,
               repoOptions: data?.viewer?.repositories?.nodes?.map?.(
                 ({ nameWithOwner }) => nameWithOwner
-              )
-            }
+              ),
+            },
           });
         }
       })
-      .catch(e => {
+      .catch((e) => {
         // prevent race condition
         if (curNum === this.curFetchIndex) {
           if (e?.networkError?.statusCode === 401)
             this.setState({
               patStatus: {
                 valid: false,
-                message: 'Token returned authorization error'
-              }
+                message: 'Token returned authorization error',
+              },
             });
           else
             this.setState({
               patStatus: {
                 valid: false,
-                message: 'Unknown GitHub API error'
-              }
+                message: 'Unknown GitHub API error',
+              },
             });
         }
       });
@@ -158,8 +158,8 @@ export default class SettingsUI extends React.Component {
       return this.setState({
         patStatus: {
           valid: false,
-          message: 'Token is less than 20 characters in length'
-        }
+          message: 'Token is less than 20 characters in length',
+        },
       });
     }
     // else update the user information using the token
@@ -182,8 +182,8 @@ export default class SettingsUI extends React.Component {
         repos: this.state.repoValue,
         users: this.state.userValue,
         labels: this.state.labelValue,
-        staleTime: parseFloat(this.state.timeValue) * this.state.timeUnit
-      })
+        staleTime: parseFloat(this.state.timeValue) * this.state.timeUnit,
+      }),
     ]);
     // tell the user we're done
     this.setState({ submitting: false });
@@ -288,14 +288,14 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <Multiselect
-              onCreate={name =>
+              onCreate={(name) =>
                 this.setState(({ repoValue }) => ({
                   repoValue: SettingsUI.splitRepositoryNames(name)
-                    .filter(n => !repoValue.includes(n))
-                    .concat(repoValue)
+                    .filter((n) => !repoValue.includes(n))
+                    .concat(repoValue),
                 }))
               }
-              onChange={value => this.setState({ repoValue: value })}
+              onChange={(value) => this.setState({ repoValue: value })}
               value={this.state.repoValue}
               data={this.state.patStatus.repoOptions}
               placeholder="Enter a repository name (e.g. newrelic/nr1-ospo)"
@@ -311,7 +311,7 @@ export default class SettingsUI extends React.Component {
                     return 'Invalid repository name (make sure to include the organization)';
                   if (split.length === 1) return `Add repository ${split[0]}`;
                   return `Add repositories ${split.join(', ')}`;
-                }
+                },
               }}
             />
           </StackItem>
@@ -324,7 +324,7 @@ export default class SettingsUI extends React.Component {
                     HeadingText.SPACING_TYPE.OMIT,
                     HeadingText.SPACING_TYPE.OMIT,
                     HeadingText.SPACING_TYPE.SMALL,
-                    HeadingText.SPACING_TYPE.SMALL
+                    HeadingText.SPACING_TYPE.SMALL,
                   ]}
                 >
                   Advanced Configuration
@@ -351,14 +351,14 @@ export default class SettingsUI extends React.Component {
                   <Multiselect
                     onCreate={({ name }) =>
                       this.setState(({ labelValue }) => ({
-                        labelValue: labelValue.concat([name])
+                        labelValue: labelValue.concat([name]),
                       }))
                     }
-                    onChange={value =>
+                    onChange={(value) =>
                       this.setState({
-                        labelValue: value.map(v =>
+                        labelValue: value.map((v) =>
                           typeof v !== 'string' ? v.name : v
-                        )
+                        ),
                       })
                     }
                     value={this.state.labelValue}
@@ -387,14 +387,14 @@ export default class SettingsUI extends React.Component {
                 </StackItem>
                 <StackItem>
                   <Multiselect
-                    onCreate={name =>
+                    onCreate={(name) =>
                       this.setState(({ userValue }) => ({
                         userValue: SettingsUI.splitLogins(name)
-                          .filter(n => !userValue.includes(n))
-                          .concat(userValue)
+                          .filter((n) => !userValue.includes(n))
+                          .concat(userValue),
                       }))
                     }
-                    onChange={value => this.setState({ userValue: value })}
+                    onChange={(value) => this.setState({ userValue: value })}
                     value={this.state.userValue}
                     data={[]}
                     placeholder="Enter additional GitHub usernames"
@@ -424,7 +424,7 @@ export default class SettingsUI extends React.Component {
                         style={{ width: '100%' }}
                         onChange={({ target }) =>
                           this.setState({
-                            timeValue: target.value
+                            timeValue: target.value,
                           })
                         }
                         invalid={

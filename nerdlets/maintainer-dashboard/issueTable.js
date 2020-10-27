@@ -7,19 +7,17 @@ import filterFactory, {
   selectFilter,
   dateFilter,
   Comparator,
-  multiSelectFilter
+  multiSelectFilter,
 } from 'react-bootstrap-table2-filter';
 import { Button, Icon } from 'nr1';
 import { IssueLabel } from './issueLabel';
 import PullRequestLogo from './img/git-pull-request-16.svg';
 import IssueLogo from './img/issue-opened-16.svg';
 
-/**
- * 
- */
+/**  */
 export class IssueTable extends React.PureComponent {
   static propTypes = {
-    items: PropTypes.arrayOf(PropTypes.object)
+    items: PropTypes.arrayOf(PropTypes.object),
   };
 
   constructor(props) {
@@ -27,7 +25,7 @@ export class IssueTable extends React.PureComponent {
   }
 
   render() {
-    const sortCaret = order => {
+    const sortCaret = (order) => {
       let type;
       if (order === 'asc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_TOP;
       else if (order === 'desc')
@@ -45,7 +43,7 @@ export class IssueTable extends React.PureComponent {
 
     const allLabels = Array.from(
       new Map(
-        this.props.items.flatMap(i => i.labels.nodes.map(l => [l.name, l]))
+        this.props.items.flatMap((i) => i.labels.nodes.map((l) => [l.name, l]))
       ).values()
     );
 
@@ -55,7 +53,7 @@ export class IssueTable extends React.PureComponent {
         text: 'Type',
         sort: true,
         sortCaret,
-        formatter: cell => (
+        formatter: (cell) => (
           <img
             src={cell === 'Issue' ? IssueLogo : PullRequestLogo}
             style={{ marginRight: '40px' }}
@@ -64,9 +62,9 @@ export class IssueTable extends React.PureComponent {
         filter: selectFilter({
           options: {
             Issue: 'Issue',
-            PullRequest: 'Pull Request'
-          }
-        })
+            PullRequest: 'Pull Request',
+          },
+        }),
       },
       {
         dataField: 'url',
@@ -79,34 +77,34 @@ export class IssueTable extends React.PureComponent {
           >
             #{row.number}
           </Button>
-        )
+        ),
       },
       {
         dataField: 'repository.name',
         text: 'Repository',
         sort: true,
         sortCaret,
-        filter: textFilter()
+        filter: textFilter(),
       },
       {
         dataField: 'createdAt',
         text: 'Open',
         sort: true,
-        sortValue: cell => Date.now() - new Date(cell).getTime(),
+        sortValue: (cell) => Date.now() - new Date(cell).getTime(),
         sortCaret,
         type: 'date',
         filter: dateFilter({}),
-        formatter: cell =>
+        formatter: (cell) =>
           humanizeDuration(Date.now() - new Date(cell).getTime(), {
-            largest: 1
-          })
+            largest: 1,
+          }),
       },
       {
         dataField: 'author.login',
         text: 'User',
         sort: true,
         sortCaret,
-        filter: textFilter()
+        filter: textFilter(),
       },
       {
         dataField: 'labels.nodes',
@@ -117,19 +115,19 @@ export class IssueTable extends React.PureComponent {
             a[name] = name;
             return a;
           }, {}),
-          withoutEmptyOption: true
+          withoutEmptyOption: true,
         }),
-        filterValue: cell => cell.map(({ name }) => name),
-        formatter: cell =>
+        filterValue: (cell) => cell.map(({ name }) => name),
+        formatter: (cell) =>
           cell.map(({ name, color }) => (
             <IssueLabel key={name} name={name} color={color} />
-          ))
+          )),
       },
       {
         dataField: 'title',
         text: 'Title',
-        filter: textFilter()
-      }
+        filter: textFilter(),
+      },
     ];
 
     return (

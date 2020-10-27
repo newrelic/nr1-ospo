@@ -7,7 +7,7 @@ import filterFactory, {
   selectFilter,
   dateFilter,
   Comparator,
-  multiSelectFilter
+  multiSelectFilter,
 } from 'react-bootstrap-table2-filter';
 import {
   Spinner,
@@ -24,7 +24,7 @@ import {
   BillboardChart,
   Icon,
   Link,
-  Tooltip
+  Tooltip,
 } from 'nr1';
 import { getGithubData } from './githubData';
 import { IssueTable } from './issueTable';
@@ -36,7 +36,7 @@ export default class Dashboard extends React.Component {
     companyUsers: PropTypes.arrayOf(PropTypes.string),
     ignoreUsers: PropTypes.arrayOf(PropTypes.string),
     ignoreLabels: PropTypes.arrayOf(PropTypes.string),
-    staleTime: PropTypes.number
+    staleTime: PropTypes.number,
   };
 
   constructor(props) {
@@ -45,7 +45,7 @@ export default class Dashboard extends React.Component {
       newSearchCount: null,
       newSearchItems: null,
       staleSearchCount: null,
-      staleSearchItems: null
+      staleSearchItems: null,
     };
   }
 
@@ -56,7 +56,7 @@ export default class Dashboard extends React.Component {
         scanRepos: this.props.scanRepos,
         companyUsers: this.props.companyUsers.concat(this.props.ignoreUsers),
         ignoreLabels: this.props.ignoreLabels,
-        staleTime: this.props.staleTime
+        staleTime: this.props.staleTime,
       })
     );
   }
@@ -69,10 +69,10 @@ export default class Dashboard extends React.Component {
           name: 'New Items',
           viz: 'main',
           units_data: {
-            y: 'COUNT'
-          }
+            y: 'COUNT',
+          },
         },
-        data: [{ y: this.state.newSearchCount }]
+        data: [{ y: this.state.newSearchCount }],
       },
       {
         metadata: {
@@ -80,11 +80,11 @@ export default class Dashboard extends React.Component {
           name: 'Stale Items',
           viz: 'main',
           units_data: {
-            y: 'COUNT'
-          }
+            y: 'COUNT',
+          },
         },
-        data: [{ y: this.state.staleSearchCount }]
-      }
+        data: [{ y: this.state.staleSearchCount }],
+      },
     ];
   }
 

@@ -26,7 +26,7 @@ import {
   Link,
   Select,
   SelectItem,
-  UserStorageMutation
+  UserStorageMutation,
 } from 'nr1';
 import { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsUI from './settings';
@@ -36,8 +36,8 @@ import { client } from './graphql/ApolloClientInstance';
 import NewRelicUsers from './data/userdata-sample.json';
 
 const RELICS = Object.values(NewRelicUsers)
-  .filter(u => u.user_type === 'relic' || u.user_type === 'contractor')
-  .map(u => u.login)
+  .filter((u) => u.user_type === 'relic' || u.user_type === 'contractor')
+  .map((u) => u.login)
   .sort();
 
 export default class MaintainerDashboard extends React.Component {
@@ -45,7 +45,7 @@ export default class MaintainerDashboard extends React.Component {
     super(props);
     this.state = {
       queryKey: 0,
-      settingsHidden: true
+      settingsHidden: true,
     };
   }
 
@@ -69,7 +69,7 @@ export default class MaintainerDashboard extends React.Component {
                     onSubmit={() =>
                       this.setState(({ queryKey }) => ({
                         settingsHidden: true,
-                        queryKey: queryKey + 1
+                        queryKey: queryKey + 1,
                       }))
                     }
                     client={gqlClient}
@@ -92,7 +92,7 @@ export default class MaintainerDashboard extends React.Component {
                     onClose={() => this.setState({ settingsHidden: true })}
                     onHideEnd={() =>
                       this.setState(({ queryKey }) => ({
-                        queryKey: queryKey + 1
+                        queryKey: queryKey + 1,
                       }))
                     }
                   >
@@ -102,7 +102,7 @@ export default class MaintainerDashboard extends React.Component {
                       ).map(([name, color]) => ({ name, color }))}
                       onSubmit={() =>
                         this.setState(() => ({
-                          settingsHidden: true
+                          settingsHidden: true,
                         }))
                       }
                       client={gqlClient}
@@ -112,7 +112,7 @@ export default class MaintainerDashboard extends React.Component {
                     style={{
                       position: 'absolute',
                       right: '24px',
-                      top: '8px'
+                      top: '8px',
                     }}
                     directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
                   >

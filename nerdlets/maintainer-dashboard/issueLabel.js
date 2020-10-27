@@ -13,7 +13,7 @@ export const KNOWN_LABEL_COLORS = new Map([
   ['question', 'd876e3'],
   ['wontfix', 'ffffff'],
   ['dependencies', '0366d6'],
-  ['repolinter', 'fbca04']
+  ['repolinter', 'fbca04'],
 ]);
 
 // stolen from https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
@@ -28,7 +28,7 @@ function pickTextColorBasedOnBgColor(bgColor, lightColor, darkColor) {
 export class IssueLabel extends React.PureComponent {
   static propTypes = {
     name: PropTypes.string,
-    color: PropTypes.string
+    color: PropTypes.string,
   };
 
   constructor(props) {
@@ -49,7 +49,7 @@ export class IssueLabel extends React.PureComponent {
           marginRight: '6px',
           backgroundColor: `#${bgColor}`,
           boxSizing: 'border-box',
-          display: 'inline-block'
+          display: 'inline-block',
         }}
       >
         <BlockText
@@ -61,7 +61,7 @@ export class IssueLabel extends React.PureComponent {
             lineHeight: '18px',
             color: pickTextColorBasedOnBgColor(bgColor, '#ffffff', '#000000'),
             display: 'inline-block',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
           }}
         >
           {this.props.name}

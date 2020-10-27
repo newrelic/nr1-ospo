@@ -12,13 +12,13 @@ export default class UserSettingsQuery extends React.Component {
   static async removeToken() {
     return UserSecretsMutation.mutate({
       actionType: UserSecretsMutation.ACTION_TYPE.DELETE_SECRET,
-      name: GH_TOKEN_KEY
+      name: GH_TOKEN_KEY,
     });
   }
 
   static async readToken() {
     const { data } = await UserSecretsQuery.query({
-      name: GH_TOKEN_KEY
+      name: GH_TOKEN_KEY,
     });
     return data?.value;
   }
@@ -27,7 +27,7 @@ export default class UserSettingsQuery extends React.Component {
     return UserSecretsMutation.mutate({
       actionType: UserSecretsMutation.ACTION_TYPE.WRITE_SECRET,
       name: GH_TOKEN_KEY,
-      value: token
+      value: token,
     });
   }
 
@@ -40,39 +40,39 @@ export default class UserSettingsQuery extends React.Component {
         repos,
         labels,
         users,
-        staleTime
-      }
+        staleTime,
+      },
     });
   }
 
   static async readSettings() {
     const { data } = await UserStorageQuery.query({
       collection: SETTINGS_KEY,
-      documentId: SETTINGS_KEY
+      documentId: SETTINGS_KEY,
     });
     return data;
   }
 
   static propTypes = {
-    children: PropTypes.func
+    children: PropTypes.func,
   };
 
   constructor(props = {}) {
     super(props);
     this.state = {
-      loading: true
+      loading: true,
     };
   }
 
   async componentDidMount() {
     const [token, settings] = await Promise.all([
       UserSettingsQuery.readToken(),
-      UserSettingsQuery.readSettings()
+      UserSettingsQuery.readSettings(),
     ]);
     this.setState({
       loading: false,
       token,
-      settings
+      settings,
     });
   }
 

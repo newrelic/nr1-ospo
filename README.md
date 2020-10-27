@@ -25,15 +25,12 @@ _Note: DELETE TO HERE._
 >
 > Before you publish, remove all the commments (the block quotes beginning with `>`), then follow the [standard Nerdpack README review process](https://docs.google.com/document/d/1xUg1NnNJriC0mrUE1hqcHcs5dqzyLoSYE25qjwBaWQE/edit).
 
-![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/newrelic/{{ NERDPACK_NAME }}?include_prereleases&sort=semver) [![Snyk](https://snyk.io/test/github/newrelic/{{ NERDPACK_NAME }}/badge.svg)](https://snyk.io/test/github/newrelic/{{ NERDPACK_NAME }})
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/newrelic/nr1-ospo?include_prereleases&sort=semver) [![Snyk](https://snyk.io/test/github/newrelic/nr1-ospo/badge.svg)](https://snyk.io/test/github/newrelic/nr1-ospo)
 
 ## About this Nerdpack
 
-> Write one or two short paragraphs that describe what your app does—and more importantly, why users should care. Avoid too much technical jargon: Your content should be understandable to someone who doesn't have much knowledge of New Relic's technologies. And include links to New Relic docs or other apps.
->
-> For example:
+This application scans a set of GitHub repositories for new or stale Issues or PRs, and presents them in a easily digestible dashboard. This project is used in New Relic to help teams with large numbers of repositories keep up with community contributions. Currently this dashboard only interacts with GitHub APIs, but NRDB integrations and alerts are planned for future functionality.
 
-This application analyzes your cloud environment, and figures out where you're wasting money on excess cloud capacity. The application compares the size of your instances to their utilization, and estimates how much you could save by optimizing the size.
 
 > Include at least one screenshot. Remove any sensitive data like customer data, NR-only tools, and system information like hostnames (for a full list, see [Docs site security guidelines for images](https://newrelic.jiveon.com/docs/DOC-8362) on Jive).
 
