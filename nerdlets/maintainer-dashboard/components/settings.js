@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   HeadingText,
   Stack,
@@ -12,48 +13,135 @@ import {
   SelectItem,
 } from 'nr1';
 import { Multiselect } from 'react-widgets';
-import { IssueLabel } from './issueLabel';
 import { getUserInfo } from '../graphql/githubData';
+import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 import UserSettingsQuery from '../util/storageUtil';
 
-export default class SettingsUI extends React.Component {
-  static splitRepositoryNames(searchTerm) {
-    return Array.from(
-      new Set(
-        searchTerm
-          .split(/(,\s*)|\s+/g)
-          .map((n) => n && n.trim())
-          .filter((n) => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
-      )
-    );
-  }
+/** An array of { name, color } for every GitHub issue label in the default set */
+const ALL_LABELS = Array.from(
+  KNOWN_LABEL_COLORS.entries()
+).map(([name, color]) => ({ name, color }));
 
-  static splitLogins(searchTerm) {
-    return Array.from(
-      new Set(
-        searchTerm
-          .split(/(,\s*)|\s+/g)
-          .map((n) => n && n.trim())
-          .filter((n) => n)
-      )
-    );
-  }
+/**
+ * Split user supplied repository name list (including the organization) into an
+ * array of the supplied names. This function supports whitespace and comma
+ * separated lists, and will automatically deduplicate and remove invalid
+ * entries.
+ *
+ * @param {string} repoList The user input string containing a list of
+ *     repositories
+ * @returns {string[]} The list of validated repository names parsed from the
+ *     input.
+ */
+function splitRepositoryNames(repoList) {
+  return Array.from(
+    new Set(
+      repoList
+        .split(/(,\s*)|\s+/g)
+        .map((n) => n && n.trim())
+        .filter((n) => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
+    )
+  );
+}
+
+/**
+ * Split user supplied GitHub login list into an array of the supplied logins.
+ * This function supports whitespace and comma separated lists, and will
+ * automatically deduplicate and trim values.
+ *
+ * @param {string} loginList The user input string containing a list of GitHub
+ *     logins.
+ * @returns {string[]} The list of logins parsed from the input.
+ */
+function splitLogins(loginList) {
+  return Array.from(
+    new Set(
+      loginList
+        .split(/(,\s*)|\s+/g)
+        .map((n) => n && n.trim())
+        .filter((n) => n)
+    )
+  );
+}
+
+/**
+ * An uncontrolled component for adjustment of the dashboard settings. This
+ * component takes user input regarding dashboard configuration and writes it
+ * to persistent storage using the UserSettingsQuery.writeSettings and
+ * UserSettingsQuery.writeToken. This data can then be fetched in the dashboard
+ * itself using the UserSettingsQuery component or read functions.
+ *
+ * Inputs behave normally with the exception of the PAT field, which is checked
+ * with githubData.getUserInfo. Information from this query is also used to
+ * supply suggestions to other input fields.
+ */
+export default class SettingsUI extends React.Component {
+  static propTypes = {
+    /** Apollo GraphQL client used to verify the PAT input. */
+    client: PropTypes.object.isRequired,
+    /**
+     * Function called after the component has finished submitting the settings
+     * to persistent storage. Takes no inputs and returns nothing.
+     */
+    onSubmit: PropTypes.func.isRequired,
+    /** Optional CSS to apply to this component */
+    style: PropTypes.object,
+  };
 
   constructor(props) {
     super(props);
     this.state = {
+      /**
+       * A list of currently selected repositories, used by the repository
+       * multiselect
+       */
       repoValue: [],
+      /**
+       * A list of currently selected issue/pr labels, used by the label
+       * multiselect
+       */
       labelValue: [],
+      /**
+       * A list of currently selected user logins, used by the user override
+       * multiselect.
+       */
       userValue: [],
+      /**
+       * The millisecond value of the currently selected time unit (start at
+       * weeks)
+       */
       timeUnit: 1000 * 60,
-      timeValue: '',
+      /** Value of the time text input box */
+      timeValue: '20160',
+      /** Value of the PAT input box */
       token: '',
+      /**
+       * Object indicating the status of the PAT validation and information
+       * retrieval flow.
+       *
+       * @property {?boolean} valid If this value is true, `state.token` is
+       *     verified to be a valid PAT.
+       * @property {?boolean} testing If this value is true, `state.token` is in
+       *     the process of being verified.
+       * @property {?string} message If `valid` is false, this property will
+       *     contain an error message from verification.
+       * @property {?string} userName If `valid` is true, this property will
+       *     contain the GitHub login associated with `state.token`.
+       * @property {?string[]} repoOptions If `valid` is true, this property
+       *     will contain a list of repository names that `state.token` has
+       *     write access to.
+       */
       patStatus: {},
+      /**
+       * Whether or not the values inputted are in the process of being written
+       * to persistent storage
+       */
       submitting: false,
     };
     this.handlePATToken = this.handlePATToken.bind(this);
     this.handlePATRemove = this.handlePATRemove.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    /** "semaphore" to prevent race conditions when fetching data asynchronously */
     this.curFetchIndex = 0;
   }
 
@@ -70,7 +158,7 @@ export default class SettingsUI extends React.Component {
         repoValue: repos || [],
         labelValue: labels || [],
         userValue: users || [],
-        timeValue: staleTime ? (staleTime / (60 * 1000)).toString() : '',
+        timeValue: staleTime ? (staleTime / (60 * 1000)).toString() : '20160',
         patStatus: prevToken ? { valid: true } : {},
         token: prevToken || '',
       });
@@ -79,6 +167,7 @@ export default class SettingsUI extends React.Component {
     if (prevToken) await this.updateUserInfo(prevToken);
   }
 
+  /** Check the PAT and fetch information about the user */
   async updateUserInfo(token) {
     // indicate we are currently testing the token
     this.setState({
@@ -89,7 +178,7 @@ export default class SettingsUI extends React.Component {
     // test the token with a user information query
     const curNum = ++this.curFetchIndex;
     try {
-      const data = await getUserInfo(this.props.client, this.state.token);
+      const data = await getUserInfo(this.props.client, token);
       // prevent race conditions
       if (curNum === this.curFetchIndex) {
         this.setState({
@@ -123,6 +212,7 @@ export default class SettingsUI extends React.Component {
     }
   }
 
+  /** Handler for the PAT input event */
   handlePATToken(event) {
     const token = event.target.value;
     this.setState({ token });
@@ -139,11 +229,13 @@ export default class SettingsUI extends React.Component {
     this.updateUserInfo(token);
   }
 
+  /** Handler for the PAT remove button */
   async handlePATRemove() {
     this.setState({ token: '', patStatus: {} });
     await UserSettingsQuery.removeToken();
   }
 
+  /** Handler for the submit button */
   async handleSubmit() {
     // tell the user we are currently submitting
     this.setState({ submitting: true });
@@ -164,6 +256,7 @@ export default class SettingsUI extends React.Component {
     this.props.onSubmit();
   }
 
+  /** Used to generate an error message for the submit button */
   getFormError() {
     if (!this.state.patStatus.valid) return 'Please enter a valid PAT';
     if (this.state.repoValue.length === 0)
@@ -263,7 +356,7 @@ export default class SettingsUI extends React.Component {
             <Multiselect
               onCreate={(name) =>
                 this.setState(({ repoValue }) => ({
-                  repoValue: SettingsUI.splitRepositoryNames(name)
+                  repoValue: splitRepositoryNames(name)
                     .filter((n) => !repoValue.includes(n))
                     .concat(repoValue),
                 }))
@@ -279,7 +372,7 @@ export default class SettingsUI extends React.Component {
                 emptyList:
                   'Enter a personal access token to see suggested repositories, or start typing to add your own.',
                 createOption({ searchTerm }) {
-                  const split = SettingsUI.splitRepositoryNames(searchTerm);
+                  const split = splitRepositoryNames(searchTerm);
                   if (!split.length)
                     return 'Invalid repository name (make sure to include the organization)';
                   if (split.length === 1) return `Add repository ${split[0]}`;
@@ -336,7 +429,7 @@ export default class SettingsUI extends React.Component {
                     }
                     value={this.state.labelValue}
                     placeholder="Select labels to filter"
-                    data={this.props.labelOptions}
+                    data={ALL_LABELS}
                     textField="name"
                     itemComponent={({ item }) => (
                       <IssueLabel name={item.name} color={item.color} />
@@ -362,7 +455,7 @@ export default class SettingsUI extends React.Component {
                   <Multiselect
                     onCreate={(name) =>
                       this.setState(({ userValue }) => ({
-                        userValue: SettingsUI.splitLogins(name)
+                        userValue: splitLogins(name)
                           .filter((n) => !userValue.includes(n))
                           .concat(userValue),
                       }))

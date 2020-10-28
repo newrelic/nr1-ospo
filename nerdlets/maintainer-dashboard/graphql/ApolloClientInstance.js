@@ -18,12 +18,12 @@ const GITHUB_BASE_URL = 'https://api.github.com/graphql';
 /**
  * Instantiates a new ApolloClient that utilizes the userToken for authorization
  *
- * @param {any} userToken A GitHub personal access token
+ * @param {string} userToken A GitHub personal access token
  */
 export const client = (userToken) => {
   return new ApolloClient({
     link: ApolloLink.from([
-      new RetryLink(),
+      // new RetryLink(),
       onError(({ graphQLErrors, networkError }) => {
         if (graphQLErrors) {
           console.error('GRAPHQL_ERR::>', graphQLErrors);

@@ -25,10 +25,10 @@ function pickTextColorBasedOnBgColor(bgColor, lightColor, darkColor) {
   return r * 0.299 + g * 0.587 + b * 0.114 > 186 ? darkColor : lightColor;
 }
 
-export class IssueLabel extends React.PureComponent {
+export default class IssueLabel extends React.PureComponent {
   static propTypes = {
-    name: PropTypes.string,
-    color: PropTypes.string,
+    name: PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
   };
 
   constructor(props) {

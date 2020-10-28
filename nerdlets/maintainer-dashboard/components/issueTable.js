@@ -10,21 +10,27 @@ import filterFactory, {
   multiSelectFilter,
 } from 'react-bootstrap-table2-filter';
 import { Button, Icon } from 'nr1';
-import { IssueLabel } from './issueLabel';
+import IssueLabel from './issueLabel';
 import PullRequestLogo from '../img/git-pull-request-16.svg';
 import IssueLogo from '../img/issue-opened-16.svg';
 
-/**  */
-export class IssueTable extends React.PureComponent {
+/**
+ * Implementation of a Issue/PR list using react-bootstrap-table2. Includes
+ * filtering, sorting, and autolinking to the respective GitHub page.
+ */
+export default class IssueTable extends React.PureComponent {
   static propTypes = {
-    items: PropTypes.arrayOf(PropTypes.object),
+    /**
+     * A list of Issues and PRs. The structure of each object is defined in
+     * ISSUE_FRAGMENT and PR_FRAGMENT in githubData.js. Ensure that the
+     * __typename key is included in each object so the table can differentiate
+     * between Issue and PR objects.
+     */
+    items: PropTypes.arrayOf(PropTypes.object).isRequired,
   };
 
-  constructor(props) {
-    super(props);
-  }
-
   render() {
+    // function to replace the default sort caret icons with NR ones
     const sortCaret = (order) => {
       let type;
       if (order === 'asc') type = Icon.TYPE.INTERFACE__ARROW__ARROW_TOP;
@@ -41,12 +47,16 @@ export class IssueTable extends React.PureComponent {
       );
     };
 
+    // enumerate all labels present in the items array
+    // do this by adding every label from every item into a Map,
+    // thereby leaving a list of unique labels.
     const allLabels = Array.from(
       new Map(
         this.props.items.flatMap((i) => i.labels.nodes.map((l) => [l.name, l]))
       ).values()
     );
 
+    // configuration for react-boostrap-table2 columns
     const columns = [
       {
         dataField: '__typename',
@@ -138,6 +148,7 @@ export class IssueTable extends React.PureComponent {
           columns={columns}
           defaultSorted={[{ dataField: 'createdAt', order: 'asc' }]}
           rowStyle={{ whiteSpace: 'nowrap' }}
+          /* see styles.scss */
           headerClasses="ospo-tableheader"
           filter={filterFactory()}
         />

@@ -1,50 +1,44 @@
 import React from 'react';
 import {
   Card,
-  CardHeader,
   CardBody,
-  HeadingText,
   Spinner,
-  Grid,
-  GridItem,
   Stack,
   StackItem,
-  Spacing,
-  Table,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-  TableRowCell,
   Button,
-  Tabs,
-  TabsItem,
-  BillboardChart,
-  BlockText,
   Icon,
   Modal,
-  TextField,
-  Link,
-  Select,
-  SelectItem,
-  UserStorageMutation,
 } from 'nr1';
-import { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsUI from './settings';
 import DashboardData from './dashboardData';
 import UserSettingsQuery from '../util/storageUtil';
 import { client } from '../graphql/ApolloClientInstance';
 import NewRelicUsers from '../data/userdata-sample.json';
 
+// TODO: remove
 const RELICS = Object.values(NewRelicUsers)
   .filter((u) => u.user_type === 'relic' || u.user_type === 'contractor')
   .map((u) => u.login)
   .sort();
 
+/**
+ * The root component of the maintainer dashboard (excluding the wrapper). This
+ * component glues together the UserSettingsQuery, SettingsUI, and
+ * DashboardData components into a unified structure.
+ *
+ * If you've arrived here curious about how this dashboard categorizes
+ * Issues/PRs, I recommend you check out ./graphql/githubData.js.
+ */
 export default class MaintainerDashboard extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      /**
+       * A state value used to force a refresh of the UserSettingsQuery
+       * component when SettingsUI indicates an update was performed.
+       */
       queryKey: 0,
+      /** Boolean used to control the settings modal */
       settingsHidden: true,
     };
   }
@@ -63,9 +57,6 @@ export default class MaintainerDashboard extends React.Component {
               if (!token || !settings)
                 return (
                   <SettingsUI
-                    labelOptions={Array.from(
-                      KNOWN_LABEL_COLORS.entries()
-                    ).map(([name, color]) => ({ name, color }))}
                     onSubmit={() =>
                       this.setState(({ queryKey }) => ({
                         settingsHidden: true,
@@ -84,7 +75,6 @@ export default class MaintainerDashboard extends React.Component {
                     companyUsers={RELICS.concat(settings.users)}
                     scanRepos={settings.repos}
                     ignoreLabels={settings.labels}
-                    ignoreUsers={settings.users}
                     staleTime={settings.staleTime}
                   />
                   <Modal
@@ -97,9 +87,6 @@ export default class MaintainerDashboard extends React.Component {
                     }
                   >
                     <SettingsUI
-                      labelOptions={Array.from(
-                        KNOWN_LABEL_COLORS.entries()
-                      ).map(([name, color]) => ({ name, color }))}
                       onSubmit={() =>
                         this.setState(() => ({
                           settingsHidden: true,

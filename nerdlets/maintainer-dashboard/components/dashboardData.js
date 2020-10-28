@@ -18,26 +18,61 @@ import {
   Tooltip,
 } from 'nr1';
 import { findDashboardItems } from '../graphql/githubData';
-import { IssueTable } from './issueTable';
+import IssueTable from './issueTable';
 
 // TODO: figure out how to fix the tab labels from duplicating the key
 
+/**
+ * Given a set of repositories, uses githubData.findDashboardItems to query
+ * GitHub for new/stale Issues/PRs and renders the result in a easily
+ * digestible dashboard view.
+ */
 export default class DashboardData extends React.Component {
   static propTypes = {
-    client: PropTypes.object,
-    scanRepos: PropTypes.arrayOf(PropTypes.string),
-    companyUsers: PropTypes.arrayOf(PropTypes.string),
-    ignoreUsers: PropTypes.arrayOf(PropTypes.string),
-    ignoreLabels: PropTypes.arrayOf(PropTypes.string),
-    staleTime: PropTypes.number,
+    /**
+     * Apollo GraphQL client used to retrieve data from GitHub. Must be
+     * authenticated using a PAT.
+     */
+    client: PropTypes.object.isRequired,
+    /** The list of repositories to scan, in `owner/repo` format. */
+    scanRepos: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /**
+     * A list of employees in the current company. This list is used by
+     * findDashboardItems to determine the "newness" or "staleness" of an
+     * Issue/PR.
+     */
+    companyUsers: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /** A list of GitHub Issue/PR labels to ignore items from. */
+    ignoreLabels: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /**
+     * A duration in milliseconds for an Issue/PR to wait before it is
+     * considered stale
+     */
+    staleTime: PropTypes.number.isRequired,
   };
 
   constructor(props) {
     super(props);
     this.state = {
+      /**
+       * A number indicating the total count of new items found, or null if data
+       * is still being retrieved.
+       */
       newSearchCount: null,
+      /**
+       * An array of "new" items retrieved from GitHub, or null if the data is
+       * still being retrieved.
+       */
       newSearchItems: null,
+      /**
+       * A number indicating the total count of stale items found, or null if
+       * data is still being retrieved.
+       */
       staleSearchCount: null,
+      /**
+       * An array of "stale" items retrieved from GitHub, or null if the data is
+       * still being retrieved.
+       */
       staleSearchItems: null,
     };
   }
@@ -47,13 +82,17 @@ export default class DashboardData extends React.Component {
     this.setState(
       await findDashboardItems(this.props.client, {
         scanRepos: this.props.scanRepos,
-        companyUsers: this.props.companyUsers.concat(this.props.ignoreUsers),
+        companyUsers: this.props.companyUsers,
         ignoreLabels: this.props.ignoreLabels,
         staleTime: this.props.staleTime,
       })
     );
   }
 
+  /**
+   * Function translating `state.newSearchCount` and `state.staleSearchCount`
+   * into a structure the billboard chart component understands.
+   */
   _getNumbers() {
     return [
       {
