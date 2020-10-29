@@ -15,7 +15,7 @@ import {
 import { Multiselect } from 'react-widgets';
 import { getUserInfo } from '../graphql/githubData';
 import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
-import UserSettingsQuery from '../util/storageUtil';
+import SettingsQuery from '../util/storageUtil';
 
 /** An array of { name, color } for every GitHub issue label in the default set */
 const ALL_LABELS = Array.from(
@@ -147,8 +147,8 @@ export default class SettingsUI extends React.Component {
 
   async componentDidMount() {
     const [prevToken, prevSettings] = await Promise.all([
-      UserSettingsQuery.readToken(),
-      UserSettingsQuery.readSettings(),
+      SettingsQuery.readToken(),
+      SettingsQuery.readSettings(),
     ]);
     // add saved values back into settings
     // TODO: do not write the previous token back to the input form, as it may be unsafe
@@ -232,7 +232,7 @@ export default class SettingsUI extends React.Component {
   /** Handler for the PAT remove button */
   async handlePATRemove() {
     this.setState({ token: '', patStatus: {} });
-    await UserSettingsQuery.removeToken();
+    await SettingsQuery.removeToken();
   }
 
   /** Handler for the submit button */
@@ -242,8 +242,8 @@ export default class SettingsUI extends React.Component {
     // write the token to NerdVault
     // write the everything else to UserStorage
     await Promise.all([
-      UserSettingsQuery.writeToken(this.state.token),
-      UserSettingsQuery.writeSettings({
+      SettingsQuery.writeToken(this.state.token),
+      SettingsQuery.writeSettings({
         repos: this.state.repoValue,
         users: this.state.userValue,
         labels: this.state.labelValue,
@@ -288,7 +288,7 @@ export default class SettingsUI extends React.Component {
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
               Supply a personal access token to allow this dashboard to access
-              GitHub's GraphQL API. The token does not need to have any special
+              GitHub's GraphQL API. This token does not need to have any special
               permissions. See the{' '}
               <Link to="https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token">
                 GitHub documentation
@@ -299,7 +299,7 @@ export default class SettingsUI extends React.Component {
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
               Your personal access token will stored in NerdStorage vault, and
-              only be accessible to you. The token can be removed or revoked at
+              only be accessible to you. This token can be removed or revoked at
               any time.
             </BlockText>
           </StackItem>

@@ -1,41 +1,26 @@
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
-_Note: DELETE FROM HERE._
-
-# Using this Nerdpack Template
-
-1. Delete this first section containing these instructions from the README.
-2. After cloning the repo that you created from this [template repository](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-template-repository), execute the following commands to initiate the Nerdpack.
-
-```bash
-git clone https://github.com/[ORG_NAME]/[REPO_NAME].git
-cd [REPO_NAME]
-nr1 nerdpack:uuid -gf
-```
-
-Code away.
-
-_Note: DELETE TO HERE._
-
 # NR1 OSPO Maintainer Dashboard
-
-> This template includes advice on how to craft a great README for your app. This template is just a starting point: feel free to change or add sections to suit your project. A few sections are standard across all projects. Don't change the text of those sections, except to customize the Explorer's Hub URL and the Contributing email alias. The standard sections are: "Open source License," "Support," "Community," "Issues / enhancement requests," and "Contributing."
->
-> If you need advice creating your README, ping @hero in the [#documentation](https://newrelic.slack.com/messages/documentation) channel or contact the Open Source Office.
->
-> Before you publish, remove all the commments (the block quotes beginning with `>`), then follow the [standard Nerdpack README review process](https://docs.google.com/document/d/1xUg1NnNJriC0mrUE1hqcHcs5dqzyLoSYE25qjwBaWQE/edit).
 
 ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/newrelic/nr1-ospo?include_prereleases&sort=semver) [![Snyk](https://snyk.io/test/github/newrelic/nr1-ospo/badge.svg)](https://snyk.io/test/github/newrelic/nr1-ospo)
 
 ## About this Nerdpack
 
-This application scans a set of GitHub repositories for new or stale Issues or PRs, and presents them in a easily digestible dashboard. This project is used in New Relic to help teams with large numbers of repositories keep up with community contributions. Currently this dashboard only interacts with GitHub APIs, but NRDB integrations and alerts are planned for future functionality.
+This application scans a set of GitHub repositories for new or stale Issues or PRs, and presents them in a easily digestible dashboard. We created this dashboard to help teams with large numbers of repositories keep up with community contributions.
 
+![Screenshot #1](screenshots/home.png)
 
-> Include at least one screenshot. Remove any sensitive data like customer data, NR-only tools, and system information like hostnames (for a full list, see [Docs site security guidelines for images](https://newrelic.jiveon.com/docs/DOC-8362) on Jive).
+## How it Works
 
-![Screenshot #1](screenshots/screenshot_01.png)
-![Screenshot #2](screenshots/screenshot_02.png)
+This dashboard uses GitHub's [GraphQL API](https://docs.github.com/en/free-pro-team@latest/graphql) and powerful [search syntax](https://docs.github.com/en/free-pro-team@latest/github/searching-for-information-on-github/searching-on-github) to find a list of repositories for Issues or Pull Requests that fall into two categories:
+* **New** - An Issue or PR opened by someone outside the company that has not yet received a response from inside the company.
+* **Stale** - An Issue or PR opened by someone outside the company that has received a response from inside the company, but has not received a subsequent reply or follow-up after a certain period of time.
+
+These categories were designed to encourage regular community interaction, and prevent Issues/PRs from "slipping through the cracks" in a team maintaining a large number of repositories. Each of these categories is implemented as a GraphQL query that is run when the dashboard is launched. For more technical details on how Issues/PRs are categorized you can check out the queries in [githubData.js](./nerdlets/maintainer-dashboard/graphql/githubData.js).
+
+To access GitHub's GraphQL API, a [personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token) is required. This dashboard asks the user to a token for their own account, and stores the provided token in [NerdstorageVault](https://developer.newrelic.com/explore-docs/nerdstoragevault).
+
+A key part of the Issue/PR classification process is determining which GitHub users are contributing from "inside the company". GitHub (even enterprise) does not provide a readily available method for determining the employee status of a given login—as a result, it was determined that a separate database of company-associated GitHub logins must be provided to this dashboard in addition to the data provided by GitHub's APIs. At the moment this database is consumes as an Account-scoped [NerdStorage](https://developer.newrelic.com/explore-docs/nerdstorage) document containing a list of all company-associated GitHub handles (this is likely to change in the future). Since this document is account-scoped, it can be deployed once for the entire organization.
 
 ## Open source license
 
@@ -43,24 +28,13 @@ This project is distributed under the [Apache 2 license](LICENSE).
 
 ## What do you need to make this work?
 
-> List any prerequisites for using your app, and include links to other New Relic features when necessary.
->
-> For example:
-
-Required:
-
-- [New Relic Infrastructure agent(s) installed](https://docs.newrelic.com/docs/agents/manage-apm-agents/installation/install-agent#infra-install) on your cloud computing devices and the related access to [New Relic One](https://newrelic.com/platform).
-
-You'll get the best possible data out of this application if you also:
-
-- [Activate the EC2 integration](https://docs.newrelic.com/docs/integrations/amazon-integrations/get-started/connect-aws-infrastructure) to group by your cloud provider account.
-- [Install APM on your applications](https://docs.newrelic.com/docs/agents/manage-apm-agents/installation/install-agent#apm-install) to group by application.
+ * You will need to generate a list of company-associated GitHub logins, and write them to an Account-scoped NerdStorage document. More information on this process can be found in [Setting up Employee Metadata](#setting-up-employee-metadata).
+ * You will need to set up a [Personal Access Token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token) to allow this dashboard to communicate with GitHub's GraphQL API.
 
 ## Getting started
 
-> Include a step-by-step procedure on how to get your app installed and deployed. The clone and deploy steps are similar across all apps. If your app has additional steps required to get started, include them here or in their own section.
-
-1. Ensure that you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [NPM](https://www.npmjs.com/get-npm) installed. If you're unsure whether you have one or both of them installed, run the following commands. (If you have them installed, these commands return a version number; if not, the commands aren't recognized.)
+1. If this nerdpack has never been deployed in your organization, follow the [Setting up Employee Metadata](#setting-up-employee-metadata) instructions.
+2. Ensure that you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [NPM](https://www.npmjs.com/get-npm) installed. If you're unsure whether you have one or both of them installed, run the following commands. (If you have them installed, these commands return a version number; if not, the commands aren't recognized.)
 ```bash
 git --version
 npm -v
@@ -78,9 +52,7 @@ Visit [https://one.newrelic.com/?nerdpacks=local](https://one.newrelic.com/?nerd
 
 ## Deploying this Nerdpack
 
-> Include the necessary steps to deploy your app. Generally, you shouldn't need to change any of these steps.
-
-Open a command prompt in the app's directory and run the following commands.
+If this nerdpack has never been deployed in your organization or the `uuid` of the nerdpack has changed, follow the [Setting up Employee Metadata](#setting-up-employee-metadata) instructions. Open a command prompt in the app's directory and run the following commands.
 
 ```bash
 # If you need to create a new uuid for the account to which you're deploying this app, use the following
@@ -93,20 +65,34 @@ nr1 nerdpack:subscribe [-c [DEV|BETA|STABLE]] [--profile=your_profile_name]
 
 Visit [https://one.newrelic.com](https://one.newrelic.com), and launch your app in New Relic.
 
+## Setting Up Employee Metadata
+
+As GitHub does not provide a built-in method for determining company association, a database of company-associated GitHub handles must be made available to the dashboard for the categorization process. This database currently takes the form of an Account-scoped [NerdStorage](https://developer.newrelic.com/explore-docs/nerdstorage) document. This document must be setup once before deploying the dashboard, and then updated as the list of GitHub handles at your company changes.
+
+This NerdStorage document is expected to be under the `accountId`, `collection`, and `documentId` specified in [storageUtil.js](./nerdlets/maintainer-dashboard/util/storageUtil.js) under the `EMPLOYEE_METADATA` constants. Depending on your deployment, you may need to adjust the `EMPLOYEE_METADATA_ACCOUNT_ID` to an account in your organization that the dashboard deployment can access. Once adjusted, you can setup the employee metadata NerdStorage document using the by following the instructions below:
+1. Install [newrelic CLI](https://developer.newrelic.com/automate-workflows/get-started-new-relic-cli) and set it up with a Personal API key.
+2. Retrieve a list of GitHub handles associated with your company, and format them into the following JSON structure, and save the result to a file. Ensure the comments are removed to prevent errors.
+```JavaScript
+{
+  "users": [
+    // List company GitHub logins below.
+    // Do not use emails here, as a GitHub login can be associated with more than one email.
+    "github-handle1",
+    "github-handle2",
+    // ...
+  ]
+}
+```
+3. Run the following newrelic cli command, replacing `<json file name>` with the name of the JSON file generated above, `<account id>` with the value of `EMPLOYEE_METADATA_ACCOUNT_ID`, and `<nerdpack id>` with the nerdpack ID found in [nr1.json](./nr1.json):
+```sh
+newrelic nerdstorage document write -a <account id> -d <nerdpack id>-employeeMetadata-v1 -c <nerdpack id>-employeeMetadata-v1 -s ACCOUNT -o "$(< <json file name>)" -p <nerdpack id>
+```
+
 # Support
 
 New Relic has open-sourced this project. This project is provided AS-IS WITHOUT WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to the project here on GitHub.
 
 We encourage you to bring your experiences and questions to the [Explorers Hub](https://discuss.newrelic.com) where our community members collaborate on solutions and new ideas.
-
-## Community
-
-> Work with the Explorer's Hub team to create a tag for your app, then update the link below.
-
-New Relic hosts and moderates an online forum where customers can interact with New Relic employees as well as other customers to get help and share best practices. Like all official New Relic open source projects, there's a related Community topic in the New Relic Explorers Hub. You can find this project's topic/threads here:
-
-https://discuss.newrelic.com/t/{{ APP_NAME }}
-*(Note: This URL is subject to change before GA)*
 
 ## Issues / enhancement requests
 
@@ -119,8 +105,6 @@ As noted in our [security policy](https://github.com/newrelic/nr1-ospo/security/
 If you believe you have found a security vulnerability in this project or any of New Relic's products or websites, we welcome and greatly appreciate you reporting it to New Relic through [HackerOne](https://hackerone.com/newrelic).
 
 # Contributing
-
-> Work with the Open Source Office to update the email alias below.
 
 Contributions are encouraged! If you submit an enhancement request, we'll invite you to contribute the change yourself. Please review our [Contributors Guide](CONTRIBUTING.md).
 

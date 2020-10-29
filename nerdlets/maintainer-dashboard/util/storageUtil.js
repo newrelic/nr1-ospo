@@ -1,13 +1,21 @@
 import { UserSecretsMutation, UserSecretsQuery } from '@newrelic/nr1-community';
-import { UserStorageMutation, UserStorageQuery } from 'nr1';
+import {
+  UserStorageMutation,
+  UserStorageQuery,
+  AccountStorageQuery,
+} from 'nr1';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { id } from '../../../nr1.json';
 
+// TODO: clear previous values on version change
 /** Increment this value to force-clear all user settings on publish */
 const DASHBOARD_MAJOR_VERSION = 1;
 const GH_TOKEN_KEY = `${id}-githubToken-v${DASHBOARD_MAJOR_VERSION}`;
 const SETTINGS_KEY = `${id}-ospoSettings-v${DASHBOARD_MAJOR_VERSION}`;
+const EMPLOYEE_METADATA_ACCOUNT_ID = 2928503;
+const EMPLOYEE_METADATA_COLLECTION = `${id}-employeeMetadata-v${DASHBOARD_MAJOR_VERSION}`;
+const EMPLOYEE_METADATA_DOCUMENT = EMPLOYEE_METADATA_COLLECTION;
 
 /**
  * Component used to read and write the NerdStorage values relevant to this
@@ -15,7 +23,7 @@ const SETTINGS_KEY = `${id}-ospoSettings-v${DASHBOARD_MAJOR_VERSION}`;
  * works both declaratively (as a component) and imperatively (static
  * functions).
  */
-export default class UserSettingsQuery extends React.Component {
+export default class SettingsQuery extends React.Component {
   /** Remove the PAT from NerdVault. */
   static async removeToken() {
     return UserSecretsMutation.mutate({
@@ -90,8 +98,24 @@ export default class UserSettingsQuery extends React.Component {
     return data;
   }
 
+  /**
+   * Read employee metadata from account-based nerdstorage. At the moment this
+   * returns an array of usernames associated with the current company.
+   *
+   * @returns {Promise<string[]>} An array of usernames, or an empty array of
+   *     none were found.
+   */
+  static async readEmployeeData() {
+    const { data } = await AccountStorageQuery.query({
+      accountId: EMPLOYEE_METADATA_ACCOUNT_ID,
+      collection: EMPLOYEE_METADATA_COLLECTION,
+      documentId: EMPLOYEE_METADATA_DOCUMENT,
+    });
+    return data?.users;
+  }
+
   static propTypes = {
-    /** ({ loading, token, settings }) => JSX */
+    /** ({ loading, token, settings, users }) => JSX */
     children: PropTypes.func.isRequired,
   };
 
@@ -103,14 +127,16 @@ export default class UserSettingsQuery extends React.Component {
   }
 
   async componentDidMount() {
-    const [token, settings] = await Promise.all([
-      UserSettingsQuery.readToken(),
-      UserSettingsQuery.readSettings(),
+    const [token, settings, users] = await Promise.all([
+      SettingsQuery.readToken(),
+      SettingsQuery.readSettings(),
+      SettingsQuery.readEmployeeData(),
     ]);
     this.setState({
       loading: false,
       token,
       settings,
+      users,
     });
   }
 

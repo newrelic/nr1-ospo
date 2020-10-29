@@ -8,18 +8,14 @@ import {
   Button,
   Icon,
   Modal,
+  Link,
+  BlockText,
+  HeadingText,
 } from 'nr1';
 import SettingsUI from './settings';
 import DashboardData from './dashboardData';
-import UserSettingsQuery from '../util/storageUtil';
+import SettingsQuery from '../util/storageUtil';
 import { client } from '../graphql/ApolloClientInstance';
-import NewRelicUsers from '../data/userdata-sample.json';
-
-// TODO: remove
-const RELICS = Object.values(NewRelicUsers)
-  .filter((u) => u.user_type === 'relic' || u.user_type === 'contractor')
-  .map((u) => u.login)
-  .sort();
 
 /**
  * The root component of the maintainer dashboard (excluding the wrapper). This
@@ -47,10 +43,33 @@ export default class MaintainerDashboard extends React.Component {
     return (
       <Card style={{ height: '100%' }}>
         <CardBody style={{ height: '100%' }}>
-          <UserSettingsQuery key={this.state.queryKey}>
-            {({ loading, token, settings }) => {
+          <SettingsQuery key={this.state.queryKey}>
+            {({ loading, token, settings, users }) => {
               if (loading)
                 return <Spinner fillContainer style={{ height: '100%' }} />;
+              if (!users)
+                return (
+                  <div style={{ maxWidth: '60em' }}>
+                    <HeadingText
+                      spacingType={[HeadingText.SPACING_TYPE.MEDIUM]}
+                    >
+                      Error
+                    </HeadingText>
+                    <BlockText
+                      spacingType={[HeadingText.SPACING_TYPE.MEDIUM]}
+                      type={BlockText.TYPE.NORMAL}
+                    >
+                      Could not find employee metadata in NerdStorage. Employee
+                      metadata must be added to NerdStorage manually using the
+                      New Relic CLI during the setup process. Check out the{' '}
+                      <Link to="https://github.com/newrelic/nr1-ospo">
+                        project README
+                      </Link>
+                      for more information, or reach out to the team that
+                      deployed this NerdPack.
+                    </BlockText>
+                  </div>
+                );
               // create apollo client and settings UI
               const gqlClient = client(token);
               // return settings selection front and center if we have no settings
@@ -72,7 +91,7 @@ export default class MaintainerDashboard extends React.Component {
                 <>
                   <DashboardData
                     client={gqlClient}
-                    companyUsers={RELICS.concat(settings.users)}
+                    companyUsers={users.concat(settings.users)}
                     scanRepos={settings.repos}
                     ignoreLabels={settings.labels}
                     staleTime={settings.staleTime}
@@ -125,7 +144,7 @@ export default class MaintainerDashboard extends React.Component {
                 </>
               );
             }}
-          </UserSettingsQuery>
+          </SettingsQuery>
         </CardBody>
       </Card>
     );

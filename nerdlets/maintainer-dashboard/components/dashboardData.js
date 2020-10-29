@@ -158,6 +158,9 @@ export default class DashboardData extends React.Component {
         </StackItem>
         <StackItem>
           <Tabs default="new">
+            {/* NOTE: label is meant to only accept a string, and giving it an object causes the key prop
+              to be `[Object object]`. This was the only way I could get a tooltip to work though, so
+              it'll have to do.*/}
             <TabsItem
               label={
                 <span>

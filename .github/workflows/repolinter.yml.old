@@ -1,3 +1,4 @@
+# This workflow is disabled until a policy for the community category is implemented
 name: Repolinter Action
 
 # NOTE: This workflow will ONLY check the default branch!

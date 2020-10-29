@@ -25,7 +25,7 @@ export const KNOWN_LABEL_COLORS = new Map([
  * Function to automatically select light or dark text based off of the
  * background color the text will sit on. Heavily inspired by
  * https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-whit
- * -or-black-depending-on-background-color
+ * -or-black-depending-on-background-color/41491220#41491220
  *
  * @param {string} bgColor The background color text will sit on, in 6 character
  *     hex format.
