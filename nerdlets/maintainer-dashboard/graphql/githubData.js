@@ -12,6 +12,7 @@ const ISSUE_FRAGMENT = gql`
   fragment GetIssueInfo on Issue {
     id
     title
+    authorAssociation
     author {
       login
       url
@@ -40,6 +41,7 @@ const PR_FRAGMENT = gql`
   fragment GetPRInfo on PullRequest {
     id
     title
+    authorAssociation
     author {
       login
       url

@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Tooltip, Button, Icon } from 'nr1';
 import * as humanizeDuration from 'humanize-duration';
 import BootstrapTable from 'react-bootstrap-table-next';
 import filterFactory, {
@@ -9,9 +10,9 @@ import filterFactory, {
   Comparator,
   multiSelectFilter,
 } from 'react-bootstrap-table2-filter';
-import { Button, Icon } from 'nr1';
+
 import IssueLabel from './issueLabel';
-import { IssueLogo, PrLogo } from './logos';
+import { IssueLogo, PrLogo, HeartLogo, HeartFillLogo } from './logos';
 
 /**
  * Implementation of a Issue/PR list using react-bootstrap-table2. Includes
@@ -114,6 +115,38 @@ export default class IssueTable extends React.PureComponent {
         sort: true,
         sortCaret,
         filter: textFilter(),
+      },
+      {
+        dataField: 'authorAssociation',
+        text: 'First Time',
+        sort: true,
+        sortCaret,
+        formatter: (cell) => {
+          if (cell === 'FIRST_TIMER')
+            return (
+              <Tooltip text="This user have never committed to GitHub">
+                <HeartFillLogo style={{ marginRight: '40px' }} />
+              </Tooltip>
+            );
+          if (cell === 'FIRST_TIME_CONTRIBUTOR' || cell === 'NONE')
+            return (
+              <Tooltip text="This user has never contributed code to this repository before">
+                <HeartLogo style={{ marginRight: '40px' }} />
+              </Tooltip>
+            );
+        },
+        filter: selectFilter({
+          options: {
+            first: 'First-time Contributor',
+            prev: 'Previous Contributor',
+          },
+        }),
+        filterValue: (cell) =>
+          cell === 'FIRST_TIMER' ||
+          cell === 'FIRST_TIME_CONTRIBUTOR' ||
+          cell === 'NONE'
+            ? 'first'
+            : 'prev',
       },
       {
         dataField: 'labels.nodes',

@@ -1,6 +1,6 @@
 {
   "schemaType": "NERDPACK",
   "id": "001200e1-8358-4bbd-9302-aeb8bb85b579",
-  "displayName": "nr1-ospo",
+  "displayName": "OSPO Maintainer Dashboard",
   "description": "OSPO dashboard built on New Relic One"
 }
