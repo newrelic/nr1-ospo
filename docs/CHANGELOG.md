@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/newrelic/nr1-ospo/compare/v1.1.0...v1.1.1) (2020-10-30)
+
+
+### Bug Fixes
+
+* update employee metadata account id ([dd88825](https://github.com/newrelic/nr1-ospo/commit/dd88825dbb36071052a3c251112aa6ec89c0f51a))
+
 # [1.1.0](https://github.com/newrelic/nr1-ospo/compare/v1.0.1...v1.1.0) (2020-10-30)
 
 
