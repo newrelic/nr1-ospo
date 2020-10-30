@@ -11,8 +11,6 @@ import filterFactory, {
 } from 'react-bootstrap-table2-filter';
 import { Button, Icon } from 'nr1';
 import IssueLabel from './issueLabel';
-import PullRequestLogo from '../img/git-pull-request-16.svg';
-import IssueLogo from '../img/issue-opened-16.svg';
 
 /**
  * Implementation of a Issue/PR list using react-bootstrap-table2. Includes
@@ -65,7 +63,7 @@ export default class IssueTable extends React.PureComponent {
         sortCaret,
         formatter: (cell) => (
           <img
-            src={cell === 'Issue' ? IssueLogo : PullRequestLogo}
+            className={cell === 'Issue' ? 'ospo-issue-logo' : 'ospo-pr-logo'}
             style={{ marginRight: '40px' }}
           />
         ),
