@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/newrelic/nr1-ospo/compare/v1.0.0...v1.0.1) (2020-10-30)
+
+
+### Bug Fixes
+
+* move icons to components, ignore unallowed nerdpack assets ([ff3cf4b](https://github.com/newrelic/nr1-ospo/commit/ff3cf4b9eae3c94e4583e68223b9a699430f9591))
+
 # 1.0.0 (2020-10-30)
 
 
