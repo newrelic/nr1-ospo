@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "Thu Oct 29 2020 18:16:48 GMT-0700 (Pacific Daylight Time)",
+  "lastUpdated": "Fri Oct 30 2020 02:00:39 GMT+0000 (Coordinated Universal Time)",
   "projectName": "nr1-ospo",
   "projectUrl": "https://github.com/newrelic/nr1-ospo",
   "includeDev": true,
@@ -244,6 +244,17 @@
       "licenseTextSource": "file",
       "publisher": "Nicholas C. Zakas",
       "email": "nicholas+npm@nczconsulting.com"
+    },
+    "ignore-loader@0.1.2": {
+      "name": "ignore-loader",
+      "version": "0.1.2",
+      "range": "^0.1.2",
+      "licenses": "UNKNOWN",
+      "repoUrl": "https://github.com/cherrry/ignore-loader",
+      "versionedRepoUrl": "https://github.com/cherrry/ignore-loader/tree/v0.1.2",
+      "licenseFile": "node_modules/ignore-loader/LICENSE",
+      "licenseUrl": "https://github.com/cherrry/ignore-loader/blob/v0.1.2/LICENSE",
+      "licenseTextSource": "file"
     },
     "prettier-plugin-jsdoc@0.2.0": {
       "name": "prettier-plugin-jsdoc",
