@@ -21,14 +21,6 @@ $img-path: '~react-widgets/lib/img';
   display: none;
 }
 
-.ospo-issue-logo {
-  content: url('./img/issue-opened-16.svg');
-}
-
-.ospo-pr-logo {
-  content: url('./img/git-pull-request-16.svg');
-}
-
 #root {
   overflow: visible;
 }

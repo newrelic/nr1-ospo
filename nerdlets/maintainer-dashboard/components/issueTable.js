@@ -11,6 +11,7 @@ import filterFactory, {
 } from 'react-bootstrap-table2-filter';
 import { Button, Icon } from 'nr1';
 import IssueLabel from './issueLabel';
+import { IssueLogo, PrLogo } from './logos';
 
 /**
  * Implementation of a Issue/PR list using react-bootstrap-table2. Includes
@@ -61,12 +62,12 @@ export default class IssueTable extends React.PureComponent {
         text: 'Type',
         sort: true,
         sortCaret,
-        formatter: (cell) => (
-          <img
-            className={cell === 'Issue' ? 'ospo-issue-logo' : 'ospo-pr-logo'}
-            style={{ marginRight: '40px' }}
-          />
-        ),
+        formatter: (cell) =>
+          cell === 'Issue' ? (
+            <IssueLogo style={{ marginRight: '40px' }} />
+          ) : (
+            <PrLogo style={{ marginRight: '40px' }} />
+          ),
         filter: selectFilter({
           options: {
             Issue: 'Issue',

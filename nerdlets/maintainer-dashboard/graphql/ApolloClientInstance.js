@@ -1,6 +1,7 @@
+/* eslint-disable no-console */
 import { ApolloClient } from 'apollo-client';
 import { ApolloLink } from 'apollo-link';
-import { RetryLink } from 'apollo-link-retry';
+// import { RetryLink } from 'apollo-link-retry';
 import { HttpLink } from 'apollo-link-http';
 import { onError } from 'apollo-link-error';
 import {
