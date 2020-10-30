@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/newrelic/nr1-ospo/compare/v1.1.1...v1.1.2) (2020-10-30)
+
+
+### Bug Fixes
+
+* regenerate uuid ([40196b3](https://github.com/newrelic/nr1-ospo/commit/40196b3ba6c17395ab4f7996835ded2e222e3d0e))
+
 ## [1.1.1](https://github.com/newrelic/nr1-ospo/compare/v1.1.0...v1.1.1) (2020-10-30)
 
 
