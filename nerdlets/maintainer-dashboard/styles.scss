@@ -25,6 +25,10 @@ $img-path: '~react-widgets/lib/img';
   overflow: visible;
 }
 
+html {
+  height: auto;
+}
+
 .ospo-tableheader .filter.date-filter {
   flex-flow: column;
 }
