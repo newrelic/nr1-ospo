@@ -12,7 +12,7 @@ import {
   Select,
   SelectItem,
 } from 'nr1';
-import { Multiselect } from 'react-widgets';
+import { Multiselect, DropdownList } from 'react-widgets';
 import { getUserInfo } from '../graphql/githubData';
 import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsQuery from '../util/storageUtil';
