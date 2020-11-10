@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/newrelic/nr1-ospo/compare/v1.1.2...v1.1.3) (2020-11-10)
+
+
+### Bug Fixes
+
+* fix double scroll bars with long tables ([0703c09](https://github.com/newrelic/nr1-ospo/commit/0703c09e4309bb7f71526e965e8e605828f4e43e))
+
 ## [1.1.2](https://github.com/newrelic/nr1-ospo/compare/v1.1.1...v1.1.2) (2020-10-30)
 
 
