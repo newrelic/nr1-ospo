@@ -16,53 +16,16 @@ import { Multiselect, DropdownList } from 'react-widgets';
 import { getUserInfo } from '../graphql/githubData';
 import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsQuery from '../util/storageUtil';
+import ProfileEditor from './profileEditor';
 
-/** An array of { name, color } for every GitHub issue label in the default set */
-const ALL_LABELS = Array.from(
-  KNOWN_LABEL_COLORS.entries()
-).map(([name, color]) => ({ name, color }));
-
-/**
- * Split user supplied repository name list (including the organization) into an
- * array of the supplied names. This function supports whitespace and comma
- * separated lists, and will automatically deduplicate and remove invalid
- * entries.
- *
- * @param {string} repoList The user input string containing a list of
- *     repositories
- * @returns {string[]} The list of validated repository names parsed from the
- *     input.
- */
-function splitRepositoryNames(repoList) {
-  return Array.from(
-    new Set(
-      repoList
-        .split(/(,\s*)|\s+/g)
-        .map((n) => n && n.trim())
-        .filter((n) => n && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(n))
-    )
-  );
-}
-
-/**
- * Split user supplied GitHub login list into an array of the supplied logins.
- * This function supports whitespace and comma separated lists, and will
- * automatically deduplicate and trim values.
- *
- * @param {string} loginList The user input string containing a list of GitHub
- *     logins.
- * @returns {string[]} The list of logins parsed from the input.
- */
-function splitLogins(loginList) {
-  return Array.from(
-    new Set(
-      loginList
-        .split(/(,\s*)|\s+/g)
-        .map((n) => n && n.trim())
-        .filter((n) => n)
-    )
-  );
-}
+const DEFAULT_PROFILE = {
+  repos: [],
+  labels: [],
+  users: [],
+  staleTimeValue: '2',
+  staleTimeUnit: 1000 * 60 * 60 * 24 * 7, // weeks
+  profileName: 'Profile Name',
+};
 
 /**
  * An uncontrolled component for adjustment of the dashboard settings. This
@@ -84,6 +47,8 @@ export default class SettingsUI extends React.Component {
      * to persistent storage. Takes no inputs and returns nothing.
      */
     onSubmit: PropTypes.func.isRequired,
+    currentToken: PropTypes.string,
+    currentSettings: PropTypes.object,
     /** Optional CSS to apply to this component */
     style: PropTypes.object,
   };
@@ -91,30 +56,14 @@ export default class SettingsUI extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      /**
-       * A list of currently selected repositories, used by the repository
-       * multiselect
-       */
-      repoValue: [],
-      /**
-       * A list of currently selected issue/pr labels, used by the label
-       * multiselect
-       */
-      labelValue: [],
-      /**
-       * A list of currently selected user logins, used by the user override
-       * multiselect.
-       */
-      userValue: [],
-      /**
-       * The millisecond value of the currently selected time unit (start at
-       * weeks)
-       */
-      timeUnit: 1000 * 60,
-      /** Value of the time text input box */
-      timeValue: '20160',
+      /** List of all profiles available */
+      allProfiles: this.props.currentSettings?.profileList?.length
+        ? this.props.currentSettings.profileList
+        : [DEFAULT_PROFILE],
+      /** The current profile being edited */
+      currentProfileIndex: this.props.currentSettings?.currentProfileIndex || 0,
       /** Value of the PAT input box */
-      token: '',
+      token: this.props.currentToken || '',
       /**
        * Object indicating the status of the PAT validation and information
        * retrieval flow.
@@ -131,7 +80,7 @@ export default class SettingsUI extends React.Component {
        *     will contain a list of repository names that `state.token` has
        *     write access to.
        */
-      patStatus: {},
+      patStatus: { testing: true },
       /**
        * Whether or not the values inputted are in the process of being written
        * to persistent storage
@@ -146,25 +95,8 @@ export default class SettingsUI extends React.Component {
   }
 
   async componentDidMount() {
-    const [prevToken, prevSettings] = await Promise.all([
-      SettingsQuery.readToken(),
-      SettingsQuery.readSettings(),
-    ]);
-    // add saved values back into settings
-    // TODO: do not write the previous token back to the input form, as it may be unsafe
-    if (prevSettings) {
-      const { repos, labels, users, staleTime } = prevSettings;
-      this.setState({
-        repoValue: repos || [],
-        labelValue: labels || [],
-        userValue: users || [],
-        timeValue: staleTime ? (staleTime / (60 * 1000)).toString() : '20160',
-        patStatus: prevToken ? { valid: true } : {},
-        token: prevToken || '',
-      });
-    }
     // re-test the PAT
-    if (prevToken) await this.updateUserInfo(prevToken);
+    if (this.state.token) await this.updateUserInfo(this.state.token);
   }
 
   /** Check the PAT and fetch information about the user */
@@ -237,12 +169,15 @@ export default class SettingsUI extends React.Component {
 
   /** Handler for the submit button */
   async handleSubmit() {
+    // TODO: this (parse staletime as int)
+    /*
     // tell the user we are currently submitting
     this.setState({ submitting: true });
     // write the token to NerdVault
     // write the everything else to UserStorage
     await Promise.all([
       SettingsQuery.writeToken(this.state.token),
+      // TODO: fix
       SettingsQuery.writeSettings({
         repos: this.state.repoValue,
         users: this.state.userValue,
@@ -254,15 +189,26 @@ export default class SettingsUI extends React.Component {
     this.setState({ submitting: false });
     // call the callback
     this.props.onSubmit();
+    */
   }
 
   /** Used to generate an error message for the submit button */
   getFormError() {
     if (!this.state.patStatus.valid) return 'Please enter a valid PAT';
-    if (this.state.repoValue.length === 0)
-      return 'Please select at least one repository';
-    else if (!this.state.timeValue || isNaN(parseFloat(this.state.timeValue)))
-      return 'Please enter a valid stale time';
+    // check for empty list of selected repositories
+    const needRepo = this.state.allProfiles.find(
+      ({ repos }) => repos.length === 0
+    );
+    if (needRepo)
+      return `Please select at least one repository for profile ${needRepo.profileName}`;
+    // check for valid stale time
+    const needStale = this.state.allProfiles.find(
+      ({ staleTimeValue }) =>
+        !staleTimeValue || isNaN(parseFloat(staleTimeValue))
+    );
+    if (needStale)
+      return `Please enter a valid stale time for profile ${needStale.profileName}`;
+    // TODO: check for dupe profiles
     return null;
   }
 
@@ -342,187 +288,66 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <HeadingText type={HeadingText.TYPE.HEADING_3}>
-              Repositories
+              Profiles (Pick better name?)
             </HeadingText>
           </StackItem>
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
-              Select which repositories you would like this tool to scan. To add
-              options not on the list, enter comma or space separated repository
-              names in the box and press enter.
+              Blah blah choose profile blah blah.
             </BlockText>
           </StackItem>
           <StackItem>
-            <Multiselect
-              onCreate={(name) =>
-                this.setState(({ repoValue }) => ({
-                  repoValue: splitRepositoryNames(name)
-                    .filter((n) => !repoValue.includes(n))
-                    .concat(repoValue),
+            <DropdownList
+              data={this.state.allProfiles.map(
+                ({ profileName }) => profileName
+              )}
+              value={
+                this.state.allProfiles[this.state.currentProfileIndex]
+                  .profileName
+              }
+              onChange={(name) =>
+                this.setState(({ allProfiles }) => ({
+                  currentProfileIndex: allProfiles.findIndex(
+                    ({ profileName }) => profileName === name
+                  ),
                 }))
               }
-              onChange={(value) => this.setState({ repoValue: value })}
-              value={this.state.repoValue}
-              data={this.state.patStatus.repoOptions}
-              placeholder="Enter a repository name (e.g. newrelic/nr1-ospo)"
-              filter="contains"
+              filter
+              allowCreate="onFilter"
+              onCreate={(newName) =>
+                this.setState(({ allProfiles }) =>
+                  !allProfiles.find(
+                    ({ profileName }) => profileName === newName
+                  )
+                    ? {
+                        allProfiles: allProfiles.concat({
+                          ...DEFAULT_PROFILE,
+                          profileName: newName,
+                        }),
+                        currentProfileIndex: allProfiles.length,
+                      }
+                    : {}
+                )
+              }
               messages={{
-                emptyFilter:
-                  'Did not match any suggested repositories to that name.',
-                emptyList:
-                  'Enter a personal access token to see suggested repositories, or start typing to add your own.',
-                createOption({ searchTerm }) {
-                  const split = splitRepositoryNames(searchTerm);
-                  if (!split.length)
-                    return 'Invalid repository name (make sure to include the organization)';
-                  if (split.length === 1) return `Add repository ${split[0]}`;
-                  return `Add repositories ${split.join(', ')}`;
-                },
+                createOption: ({ searchTerm }) =>
+                  `Create profile "${searchTerm}"`,
               }}
             />
           </StackItem>
           <StackItem>
-            <details>
-              <summary>
-                <BlockText
-                  style={{ display: 'inline-block' }}
-                  spacingType={[
-                    HeadingText.SPACING_TYPE.OMIT,
-                    HeadingText.SPACING_TYPE.OMIT,
-                    HeadingText.SPACING_TYPE.SMALL,
-                    HeadingText.SPACING_TYPE.SMALL,
-                  ]}
-                >
-                  Advanced Configuration
-                </BlockText>
-              </summary>
-              <Stack
-                fullWidth
-                horizontalType={Stack.HORIZONTAL_TYPE.FILL}
-                directionType={Stack.DIRECTION_TYPE.VERTICAL}
-                gapType={Stack.GAP_TYPE.LARGE}
-              >
-                <StackItem>
-                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                    Denylist Labels
-                  </HeadingText>
-                </StackItem>
-                <StackItem>
-                  <BlockText type={BlockText.TYPE.NORMAL}>
-                    Optionally select labels this tool should denylist. Issues
-                    or PRs with the selected labels will not be shown.
-                  </BlockText>
-                </StackItem>
-                <StackItem>
-                  <Multiselect
-                    onCreate={({ name }) =>
-                      this.setState(({ labelValue }) => ({
-                        labelValue: labelValue.concat([name]),
-                      }))
-                    }
-                    onChange={(value) =>
-                      this.setState({
-                        labelValue: value.map((v) =>
-                          typeof v !== 'string' ? v.name : v
-                        ),
-                      })
-                    }
-                    value={this.state.labelValue}
-                    placeholder="Select labels to filter"
-                    data={ALL_LABELS}
-                    textField="name"
-                    itemComponent={({ item }) => (
-                      <IssueLabel name={item.name} color={item.color} />
-                    )}
-                    filter="contains"
-                  />
-                </StackItem>
-                <StackItem>
-                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                    Employee GitHub Usernames
-                  </HeadingText>
-                </StackItem>
-                <StackItem>
-                  <BlockText type={BlockText.TYPE.NORMAL}>
-                    This dashboard pulls a list of current employee GitHub
-                    handles from shared account storage, using it to determine
-                    if an Issue or PR has received a response from inside the
-                    company. You can specify additional GitHub usernames this
-                    dashboard should treat as employees here.
-                  </BlockText>
-                </StackItem>
-                <StackItem>
-                  <Multiselect
-                    onCreate={(name) =>
-                      this.setState(({ userValue }) => ({
-                        userValue: splitLogins(name)
-                          .filter((n) => !userValue.includes(n))
-                          .concat(userValue),
-                      }))
-                    }
-                    onChange={(value) => this.setState({ userValue: value })}
-                    value={this.state.userValue}
-                    data={[]}
-                    placeholder="Enter additional GitHub usernames"
-                  />
-                </StackItem>
-                <StackItem>
-                  <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                    Stale Duration Threshold
-                  </HeadingText>
-                </StackItem>
-                <StackItem>
-                  <BlockText type={BlockText.TYPE.NORMAL}>
-                    Optionally adjust the duration of time an Issue and PR
-                    should go without activity before it is considered stale.
-                    The suggested time is around 2 weeks.
-                  </BlockText>
-                </StackItem>
-                <StackItem>
-                  <Stack
-                    fullWidth
-                    directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
-                    verticalType={Stack.VERTICAL_TYPE.BOTTOM}
-                  >
-                    <StackItem grow>
-                      <TextField
-                        placeholder="Enter a number"
-                        style={{ width: '100%' }}
-                        onChange={({ target }) =>
-                          this.setState({
-                            timeValue: target.value,
-                          })
-                        }
-                        invalid={
-                          this.state.timeValue !== '' &&
-                          isNaN(parseFloat(this.state.timeValue))
-                            ? 'Value is not a number'
-                            : false
-                        }
-                        value={this.state.timeValue}
-                      />
-                    </StackItem>
-                    <StackItem grow>
-                      <Select
-                        onChange={(evt, value) =>
-                          this.setState({ timeUnit: value })
-                        }
-                        value={this.state.timeUnit}
-                      >
-                        <SelectItem value={1000 * 60}>Minutes</SelectItem>
-                        <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
-                        <SelectItem value={1000 * 60 * 60 * 24}>
-                          Days
-                        </SelectItem>
-                        <SelectItem value={1000 * 60 * 60 * 24 * 7}>
-                          Weeks
-                        </SelectItem>
-                      </Select>
-                    </StackItem>
-                  </Stack>
-                </StackItem>
-              </Stack>
-            </details>
+            <ProfileEditor
+              profile={this.state.allProfiles[this.state.currentProfileIndex]}
+              onChange={(profileChanged) =>
+                // replace the array with a new array with the changes made to the currently selected profile
+                this.setState(({ allProfiles, currentProfileIndex }) => ({
+                  allProfiles: allProfiles.map((p, i) =>
+                    i !== currentProfileIndex ? p : { ...p, ...profileChanged }
+                  ),
+                }))
+              }
+              repoOptions={this.state.patStatus.repoOptions}
+            />
           </StackItem>
           <StackItem>
             <Button

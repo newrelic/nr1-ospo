@@ -83,18 +83,24 @@ export default class MaintainerDashboard extends React.Component {
                       }))
                     }
                     client={gqlClient}
+                    currentToken={token}
+                    currentSettings={settings}
                     style={{ maxWidth: '60em' }}
                   />
                 );
+              // get the current profile
+              const currentProfile =
+                settings.profileList[settings.currentProfileIndex];
               return (
                 // else return the dashboard with a settings modal
                 <>
+                  <p>Current profile is {currentProfile.profileName}</p>
                   <DashboardData
                     client={gqlClient}
-                    companyUsers={users.concat(settings.users)}
-                    scanRepos={settings.repos}
-                    ignoreLabels={settings.labels}
-                    staleTime={settings.staleTime}
+                    companyUsers={users.concat(currentProfile.users)}
+                    scanRepos={currentProfile.repos}
+                    ignoreLabels={currentProfile.labels}
+                    staleTime={currentProfile.staleTime}
                   />
                   <Modal
                     hidden={this.state.settingsHidden}
@@ -112,6 +118,8 @@ export default class MaintainerDashboard extends React.Component {
                         }))
                       }
                       client={gqlClient}
+                      currentToken={token}
+                      currentSettings={settings}
                     />
                   </Modal>
                   <Stack
