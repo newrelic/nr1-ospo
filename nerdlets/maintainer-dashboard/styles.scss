@@ -4,6 +4,8 @@ $font-path: '~react-widgets/lib/fonts';
 $img-path: '~react-widgets/lib/img';
 @import '~react-widgets/lib/scss/react-widgets';
 
+/* react-boostrap-table2 styling fixes */
+
 .ospo-tableheader {
   line-height: 30px;
   vertical-align: top;
@@ -21,6 +23,19 @@ $img-path: '~react-widgets/lib/img';
   display: none;
 }
 
+.ospo-tableheader .filter.date-filter {
+  flex-flow: column;
+}
+
+/* react-widgets dropdown fixes */
+
+.ospo-dropdown input {
+  box-shadow: none !important;
+  padding: 16px 0 !important;
+}
+
+/* fix double scrollbars */
+
 #root {
   overflow: visible;
 }
@@ -29,6 +44,3 @@ html {
   height: auto;
 }
 
-.ospo-tableheader .filter.date-filter {
-  flex-flow: column;
-}

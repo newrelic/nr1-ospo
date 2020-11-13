@@ -100,7 +100,10 @@ export default class MaintainerDashboard extends React.Component {
                     companyUsers={users.concat(currentProfile.users)}
                     scanRepos={currentProfile.repos}
                     ignoreLabels={currentProfile.labels}
-                    staleTime={currentProfile.staleTime}
+                    staleTime={
+                      currentProfile.staleTimeValue *
+                      currentProfile.staleTimeUnit
+                    }
                   />
                   <Modal
                     hidden={this.state.settingsHidden}

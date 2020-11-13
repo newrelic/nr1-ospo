@@ -63,16 +63,6 @@ function splitLogins(loginList) {
   );
 }
 
-/**
- * Returns if the value is a valid floating point number
- *
- * @param {string} str The input string
- * @returns {boolean} Whether of not the value is a number
- */
-function isValidNumber(str) {
-  return !isNaN(parseFloat(str));
-}
-
 export default class ProfileEditor extends React.PureComponent {
   static propTypes = {
     /**
@@ -84,8 +74,7 @@ export default class ProfileEditor extends React.PureComponent {
       repos: PropTypes.arrayOf(PropTypes.string).isRequired,
       labels: PropTypes.arrayOf(PropTypes.string).isRequired,
       users: PropTypes.arrayOf(PropTypes.string).isRequired,
-      staleTimeValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-        .isRequired,
+      staleTimeValue: PropTypes.number.isRequired,
       staleTimeUnit: PropTypes.number.isRequired,
       profileName: PropTypes.string.isRequired,
     }),
@@ -260,17 +249,17 @@ export default class ProfileEditor extends React.PureComponent {
                     <TextField
                       placeholder="Enter a number"
                       style={{ width: '100%' }}
+                      type="number"
                       onChange={({ target }) =>
                         this.props.onChange({
-                          staleTimeValue: target.value,
+                          staleTimeValue: parseFloat(target.value),
                         })
                       }
-                      invalid={
-                        isValidNumber(this.props.profile.staleTimeValue)
-                          ? false
-                          : 'Value is not a number'
+                      value={
+                        isNaN(this.props.profile.staleTimeValue)
+                          ? ''
+                          : this.props.profile.staleTimeValue.toString()
                       }
-                      value={this.props.profile.staleTimeValue.toString?.()}
                     />
                   </StackItem>
                   <StackItem grow>

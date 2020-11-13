@@ -8,7 +8,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { id } from '../../../nr1.json';
 
-// TODO: clear previous values on version change
 /** Increment this value when changing the schema of the data in nerdstorage */
 const DASHBOARD_MAJOR_VERSION = 2;
 const GH_TOKEN_KEY = `${id}-githubToken-v1`;
@@ -131,16 +130,19 @@ export default class SettingsQuery extends React.Component {
       typeof settings.currentProfileIndex !== 'number'
     ) {
       const oldSettings = await SettingsQuery.readSettings();
-      newSettings = { ...oldSettings, ...settings };
+      newSettings = {
+        ...SettingsQuery.DEFAULT_SETTINGS,
+        ...oldSettings,
+        ...settings,
+      };
     } else newSettings = settings;
     await UserStorageMutation.mutate({
       actionType: UserStorageMutation.ACTION_TYPE.WRITE_DOCUMENT,
       collection: SETTINGS_KEY,
       documentId: SETTINGS_KEY,
       document: {
+        ...newSettings,
         version: DASHBOARD_MAJOR_VERSION,
-        currentProfileIndex: newSettings.currentProfileIndex,
-        profiles: newSettings.profiles,
       },
     });
   }
@@ -175,12 +177,15 @@ export default class SettingsQuery extends React.Component {
    *     none were found.
    */
   static async readEmployeeData() {
+    /*
     const { data } = await AccountStorageQuery.query({
       accountId: EMPLOYEE_METADATA_ACCOUNT_ID,
       collection: EMPLOYEE_METADATA_COLLECTION,
       documentId: EMPLOYEE_METADATA_DOCUMENT,
     });
     return data?.users;
+    */
+    return ['bob'];
   }
 
   static propTypes = {
@@ -208,6 +213,22 @@ export default class SettingsQuery extends React.Component {
       users,
     });
   }
+
+  /** Default values for a profile in the settings */
+  static DEFAULT_PROFILE = {
+    repos: ['newrelic/nr1-ospo'],
+    labels: [],
+    users: [],
+    staleTimeValue: 2,
+    staleTimeUnit: 1000 * 60 * 60 * 24 * 7, // weeks
+    profileName: 'Profile Name',
+  };
+
+  /** Default values for the user settings */
+  static DEFAULT_SETTINGS = {
+    currentProfileIndex: 0,
+    profileList: [SettingsQuery.DEFAULT_PROFILE],
+  };
 
   render() {
     return this.props.children(this.state);

@@ -18,15 +18,6 @@ import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsQuery from '../util/storageUtil';
 import ProfileEditor from './profileEditor';
 
-const DEFAULT_PROFILE = {
-  repos: [],
-  labels: [],
-  users: [],
-  staleTimeValue: '2',
-  staleTimeUnit: 1000 * 60 * 60 * 24 * 7, // weeks
-  profileName: 'Profile Name',
-};
-
 /**
  * An uncontrolled component for adjustment of the dashboard settings. This
  * component takes user input regarding dashboard configuration and writes it
@@ -59,7 +50,7 @@ export default class SettingsUI extends React.Component {
       /** List of all profiles available */
       allProfiles: this.props.currentSettings?.profileList?.length
         ? this.props.currentSettings.profileList
-        : [DEFAULT_PROFILE],
+        : [SettingsQuery.DEFAULT_PROFILE],
       /** The current profile being edited */
       currentProfileIndex: this.props.currentSettings?.currentProfileIndex || 0,
       /** Value of the PAT input box */
@@ -80,7 +71,7 @@ export default class SettingsUI extends React.Component {
        *     will contain a list of repository names that `state.token` has
        *     write access to.
        */
-      patStatus: { testing: true },
+      patStatus: {},
       /**
        * Whether or not the values inputted are in the process of being written
        * to persistent storage
@@ -169,8 +160,6 @@ export default class SettingsUI extends React.Component {
 
   /** Handler for the submit button */
   async handleSubmit() {
-    // TODO: this (parse staletime as int)
-    /*
     // tell the user we are currently submitting
     this.setState({ submitting: true });
     // write the token to NerdVault
@@ -179,17 +168,14 @@ export default class SettingsUI extends React.Component {
       SettingsQuery.writeToken(this.state.token),
       // TODO: fix
       SettingsQuery.writeSettings({
-        repos: this.state.repoValue,
-        users: this.state.userValue,
-        labels: this.state.labelValue,
-        staleTime: parseFloat(this.state.timeValue) * this.state.timeUnit,
+        currentProfileIndex: this.state.currentProfileIndex,
+        profileList: this.state.allProfiles,
       }),
     ]);
     // tell the user we're done
     this.setState({ submitting: false });
     // call the callback
     this.props.onSubmit();
-    */
   }
 
   /** Used to generate an error message for the submit button */
@@ -203,8 +189,7 @@ export default class SettingsUI extends React.Component {
       return `Please select at least one repository for profile ${needRepo.profileName}`;
     // check for valid stale time
     const needStale = this.state.allProfiles.find(
-      ({ staleTimeValue }) =>
-        !staleTimeValue || isNaN(parseFloat(staleTimeValue))
+      ({ staleTimeValue }) => !staleTimeValue
     );
     if (needStale)
       return `Please enter a valid stale time for profile ${needStale.profileName}`;
@@ -305,6 +290,42 @@ export default class SettingsUI extends React.Component {
                 this.state.allProfiles[this.state.currentProfileIndex]
                   .profileName
               }
+              itemComponent={({ item }) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  {item}
+                  {this.state.allProfiles.length > 1 && (
+                    <Button
+                      sizeType={Button.SIZE_TYPE.SMALL}
+                      type={Button.TYPE.PLAIN_NEUTRAL}
+                      iconType={Icon.TYPE.INTERFACE__OPERATIONS__TRASH}
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        this.setState(
+                          ({ allProfiles, currentProfileIndex }) => {
+                            const newProfileList = allProfiles.filter(
+                              ({ profileName }) => profileName !== item
+                            );
+                            return {
+                              allProfiles: newProfileList,
+                              currentProfileIndex: Math.min(
+                                Math.max(newProfileList.length - 1, 0),
+                                currentProfileIndex
+                              ),
+                            };
+                          }
+                        );
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+              selectIcon={<Icon type={Icon.TYPE.INTERFACE__CARET__CARET_BOTTOM__WEIGHT_BOLD} />}
               onChange={(name) =>
                 this.setState(({ allProfiles }) => ({
                   currentProfileIndex: allProfiles.findIndex(
@@ -321,7 +342,7 @@ export default class SettingsUI extends React.Component {
                   )
                     ? {
                         allProfiles: allProfiles.concat({
-                          ...DEFAULT_PROFILE,
+                          ...SettingsQuery.DEFAULT_PROFILE,
                           profileName: newName,
                         }),
                         currentProfileIndex: allProfiles.length,
@@ -333,6 +354,7 @@ export default class SettingsUI extends React.Component {
                 createOption: ({ searchTerm }) =>
                   `Create profile "${searchTerm}"`,
               }}
+              containerClassName="ospo-dropdown"
             />
           </StackItem>
           <StackItem>
