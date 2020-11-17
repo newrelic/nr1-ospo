@@ -102,6 +102,21 @@ export default class ProfileEditor extends React.PureComponent {
       >
         <StackItem>
           <HeadingText type={HeadingText.TYPE.HEADING_4}>
+            Profile Name
+          </HeadingText>
+        </StackItem>
+        <StackItem>
+          <TextField
+            value={this.props.profile.profileName}
+            invalid={!this.props.profile.profileName}
+            onChange={(evt) =>
+              this.props.onChange({ profileName: evt.target.value })
+            }
+            style={{ width: '100%' }}
+          />
+        </StackItem>
+        <StackItem>
+          <HeadingText type={HeadingText.TYPE.HEADING_4}>
             Repositories
           </HeadingText>
         </StackItem>

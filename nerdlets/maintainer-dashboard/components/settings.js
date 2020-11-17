@@ -177,9 +177,29 @@ export default class SettingsUI extends React.Component {
     this.props.onSubmit();
   }
 
+  /** Find a list of duplicate names in allProfiles */
+  getDuplicateProfileNames() {
+    const { dupes } = this.state.allProfiles.reduce(
+      (p, { profileName }) => {
+        if (p.set.has(profileName)) p.dupes.add(profileName);
+        else p.set.add(profileName);
+        return p;
+      },
+      { set: new Set(), dupes: new Set() }
+    );
+    return Array.from(dupes);
+  }
+
   /** Used to generate an error message for the submit button */
   getFormError() {
     if (!this.state.patStatus.valid) return 'Please enter a valid PAT';
+    if (this.state.allProfiles.some(({ profileName }) => !profileName))
+      return `Please provide a profile name for all of your profiles`;
+    const dupes = this.getDuplicateProfileNames();
+    if (dupes.length)
+      return `Please rename profiles with duplicate name(s) ${dupes
+        .map((d) => `"${d}"`)
+        .join(', ')}`;
     // check for empty list of selected repositories
     const needRepo = this.state.allProfiles.find(
       ({ repos }) => repos.length === 0
@@ -288,14 +308,14 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <DropdownList
-              data={this.state.allProfiles.map(
-                ({ profileName }) => profileName
-              )}
-              value={
-                this.state.allProfiles[this.state.currentProfileIndex]
-                  .profileName
-              }
-              itemComponent={({ item }) => (
+              data={this.state.allProfiles.map(({ profileName }, index) => ({
+                profileName,
+                index,
+              }))}
+              value={this.state.currentProfileIndex}
+              valueField="index"
+              textField="profileName"
+              itemComponent={({ item: { profileName, index } }) => (
                 <div
                   style={{
                     display: 'flex',
@@ -303,7 +323,7 @@ export default class SettingsUI extends React.Component {
                     justifyContent: 'space-between',
                   }}
                 >
-                  {item}
+                  {profileName}
                   {this.state.allProfiles.length > 1 && (
                     <Button
                       sizeType={Button.SIZE_TYPE.SMALL}
@@ -313,9 +333,10 @@ export default class SettingsUI extends React.Component {
                         evt.stopPropagation();
                         this.setState(
                           ({ allProfiles, currentProfileIndex }) => {
-                            const newProfileList = allProfiles.filter(
-                              ({ profileName }) => profileName !== item
-                            );
+                            // splice out the profile (not in place)
+                            const newProfileList = allProfiles
+                              .slice(0, index)
+                              .concat(allProfiles.slice(index + 1));
                             return {
                               allProfiles: newProfileList,
                               currentProfileIndex: Math.min(
@@ -335,29 +356,21 @@ export default class SettingsUI extends React.Component {
                   type={Icon.TYPE.INTERFACE__CARET__CARET_BOTTOM__WEIGHT_BOLD}
                 />
               }
-              onChange={(name) =>
-                this.setState(({ allProfiles }) => ({
-                  currentProfileIndex: allProfiles.findIndex(
-                    ({ profileName }) => profileName === name
-                  ),
-                }))
+              onChange={({ index }) =>
+                this.setState({
+                  currentProfileIndex: index,
+                })
               }
               filter
               allowCreate="onFilter"
               onCreate={(newName) =>
-                this.setState(({ allProfiles }) =>
-                  !allProfiles.find(
-                    ({ profileName }) => profileName === newName
-                  )
-                    ? {
-                        allProfiles: allProfiles.concat({
-                          ...SettingsQuery.DEFAULT_PROFILE,
-                          profileName: newName,
-                        }),
-                        currentProfileIndex: allProfiles.length,
-                      }
-                    : {}
-                )
+                this.setState(({ allProfiles }) => ({
+                  allProfiles: allProfiles.concat({
+                    ...SettingsQuery.DEFAULT_PROFILE,
+                    profileName: newName,
+                  }),
+                  currentProfileIndex: allProfiles.length,
+                }))
               }
               messages={{
                 createOption: ({ searchTerm }) =>
