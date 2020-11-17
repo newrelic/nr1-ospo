@@ -9,8 +9,6 @@ import {
   Icon,
   TextField,
   Link,
-  Card,
-  CardBody,
 } from 'nr1';
 import { DropdownList } from 'react-widgets';
 import { getUserInfo } from '../graphql/githubData';
@@ -380,26 +378,18 @@ export default class SettingsUI extends React.Component {
             />
           </StackItem>
           <StackItem>
-            <Card style={{ backgroundColor: '#EEEFEF', overflowY: 'visible' }}>
-              <CardBody>
-                <ProfileEditor
-                  profile={
-                    this.state.allProfiles[this.state.currentProfileIndex]
-                  }
-                  onChange={(profileChanged) =>
-                    // replace the array with a new array with the changes made to the currently selected profile
-                    this.setState(({ allProfiles, currentProfileIndex }) => ({
-                      allProfiles: allProfiles.map((p, i) =>
-                        i !== currentProfileIndex
-                          ? p
-                          : { ...p, ...profileChanged }
-                      ),
-                    }))
-                  }
-                  repoOptions={this.state.patStatus.repoOptions}
-                />
-              </CardBody>
-            </Card>
+            <ProfileEditor
+              profile={this.state.allProfiles[this.state.currentProfileIndex]}
+              onChange={(profileChanged) =>
+                // replace the array with a new array with the changes made to the currently selected profile
+                this.setState(({ allProfiles, currentProfileIndex }) => ({
+                  allProfiles: allProfiles.map((p, i) =>
+                    i !== currentProfileIndex ? p : { ...p, ...profileChanged }
+                  ),
+                }))
+              }
+              repoOptions={this.state.patStatus.repoOptions}
+            />
           </StackItem>
           <StackItem>
             <Button

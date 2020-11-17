@@ -41,6 +41,12 @@ $img-path: '~react-widgets/lib/img';
   min-height: 32px;
 }
 
+/* add dark underline under text fields when the background is grey */
+
+.ospo-darktextinput input {
+  box-shadow: 0 1px 0 0 #223030;
+}
+
 /* fix double scrollbars */
 
 #root {

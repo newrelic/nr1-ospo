@@ -8,6 +8,8 @@ import {
   TextField,
   Select,
   SelectItem,
+  Card,
+  CardBody,
 } from 'nr1';
 import { Multiselect } from 'react-widgets';
 import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
@@ -90,225 +92,238 @@ export default class ProfileEditor extends React.PureComponent {
     }),
     /** A list of repository selection suggestions, in 'owner/repo' format. */
     repoOptions: PropTypes.arrayOf(PropTypes.string),
+    className: PropTypes.string,
+    style: PropTypes.object,
   };
 
   render() {
     return (
-      <Stack
-        fullWidth
-        horizontalType={Stack.HORIZONTAL_TYPE.FILL}
-        directionType={Stack.DIRECTION_TYPE.VERTICAL}
-        gapType={Stack.GAP_TYPE.LARGE}
-      >
-        <StackItem>
-          <HeadingText type={HeadingText.TYPE.HEADING_4}>
-            Profile Name
-          </HeadingText>
-        </StackItem>
-        <StackItem>
-          <TextField
-            value={this.props.profile.profileName}
-            invalid={!this.props.profile.profileName}
-            onChange={(evt) =>
-              this.props.onChange({ profileName: evt.target.value })
-            }
-            style={{ width: '100%' }}
-          />
-        </StackItem>
-        <StackItem>
-          <HeadingText type={HeadingText.TYPE.HEADING_4}>
-            Repositories
-          </HeadingText>
-        </StackItem>
-        <StackItem>
-          <BlockText type={BlockText.TYPE.NORMAL}>
-            Select which repositories you would like this tool to scan. To add
-            options not on the list, enter comma or space separated repository
-            names in the box and press enter.
-          </BlockText>
-        </StackItem>
-        <StackItem>
-          <Multiselect
-            onCreate={(name) =>
-              this.props.onChange({
-                repos: splitRepositoryNames(name)
-                  .filter((n) => !this.props.profile.repos.includes(n))
-                  .concat(this.props.profile.repos),
-              })
-            }
-            onChange={(value) => this.props.onChange({ repos: value })}
-            value={this.props.profile.repos}
-            data={this.props.repoOptions || []}
-            placeholder="Enter a repository name (e.g. newrelic/nr1-ospo)"
-            filter="contains"
-            messages={{
-              emptyFilter:
-                'Did not match any suggested repositories to that name.',
-              emptyList:
-                'Enter a personal access token to see suggested repositories, or start typing to add your own.',
-              createOption({ searchTerm }) {
-                const split = splitRepositoryNames(searchTerm);
-                if (!split.length)
-                  return 'Invalid repository name (make sure to include the organization)';
-                if (split.length === 1) return `Add repository ${split[0]}`;
-                return `Add repositories ${split.join(', ')}`;
-              },
-            }}
-          />
-        </StackItem>
-        <StackItem>
-          <details>
-            <summary>
-              <BlockText
-                style={{ display: 'inline-block' }}
-                spacingType={[
-                  HeadingText.SPACING_TYPE.OMIT,
-                  HeadingText.SPACING_TYPE.OMIT,
-                  HeadingText.SPACING_TYPE.SMALL,
-                  HeadingText.SPACING_TYPE.SMALL,
-                ]}
-              >
-                Advanced Configuration
+      <Card style={{ backgroundColor: '#EEEFEF', overflowY: 'visible' }}>
+        <CardBody>
+          <Stack
+            fullWidth
+            horizontalType={Stack.HORIZONTAL_TYPE.FILL}
+            directionType={Stack.DIRECTION_TYPE.VERTICAL}
+            gapType={Stack.GAP_TYPE.LARGE}
+            className={this.props.className}
+            style={this.props.style}
+          >
+            <StackItem>
+              <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                Profile Name
+              </HeadingText>
+            </StackItem>
+            <StackItem>
+              <TextField
+                value={this.props.profile.profileName}
+                onChange={(evt) =>
+                  this.props.onChange({ profileName: evt.target.value })
+                }
+                style={{ width: '100%' }}
+                className="ospo-darktextinput"
+              />
+            </StackItem>
+            <StackItem>
+              <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                Repositories
+              </HeadingText>
+            </StackItem>
+            <StackItem>
+              <BlockText type={BlockText.TYPE.NORMAL}>
+                Select which repositories you would like this tool to scan. To
+                add options not on the list, enter comma or space separated
+                repository names in the box and press enter.
               </BlockText>
-            </summary>
-            <Stack
-              fullWidth
-              horizontalType={Stack.HORIZONTAL_TYPE.FILL}
-              directionType={Stack.DIRECTION_TYPE.VERTICAL}
-              gapType={Stack.GAP_TYPE.LARGE}
-            >
-              <StackItem>
-                <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                  Denylist Labels
-                </HeadingText>
-              </StackItem>
-              <StackItem>
-                <BlockText type={BlockText.TYPE.NORMAL}>
-                  Optionally select labels this tool should denylist. Issues or
-                  PRs with the selected labels will not be shown.
-                </BlockText>
-              </StackItem>
-              <StackItem>
-                <Multiselect
-                  onCreate={({ name }) =>
-                    name &&
-                    this.props.onChange({
-                      labels: !this.props.profile.labels.includes(name)
-                        ? this.props.profile.labels.concat([name])
-                        : this.props.profile.labels,
-                    })
-                  }
-                  onChange={(value) =>
-                    this.props.onChange({
-                      labels: value.map((v) =>
-                        typeof v !== 'string' ? v.name : v
-                      ),
-                    })
-                  }
-                  value={this.props.profile.labels}
-                  placeholder="Select labels to filter"
-                  data={ALL_LABELS.filter(
-                    (l) =>
-                      !this.props.profile.labels.includes(
-                        typeof l !== 'string' ? l.name : l
-                      )
-                  )}
-                  textField="name"
-                  itemComponent={({ item }) => (
-                    <IssueLabel name={item.name} color={item.color} />
-                  )}
-                  filter="contains"
-                />
-              </StackItem>
-              <StackItem>
-                <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                  Employee GitHub Usernames
-                </HeadingText>
-              </StackItem>
-              <StackItem>
-                <BlockText type={BlockText.TYPE.NORMAL}>
-                  This dashboard pulls a list of current employee GitHub handles
-                  from shared account storage, using it to determine if an Issue
-                  or PR has received a response from inside the company. You can
-                  specify additional GitHub usernames this dashboard should
-                  treat as employees here.
-                </BlockText>
-              </StackItem>
-              <StackItem>
-                <Multiselect
-                  onCreate={(name) =>
-                    this.props.onChange({
-                      users: splitLogins(name)
-                        .filter((n) => !this.props.profile.users.includes(n))
-                        .concat(this.props.profile.users),
-                    })
-                  }
-                  onChange={(value) =>
-                    this.props.onChange({
-                      users: value,
-                    })
-                  }
-                  value={this.props.profile.users}
-                  data={[]}
-                  placeholder="Enter additional GitHub usernames"
-                />
-              </StackItem>
-              <StackItem>
-                <HeadingText type={HeadingText.TYPE.HEADING_4}>
-                  Stale Duration Threshold
-                </HeadingText>
-              </StackItem>
-              <StackItem>
-                <BlockText type={BlockText.TYPE.NORMAL}>
-                  Optionally adjust the duration of time an Issue and PR should
-                  go without activity before it is considered stale. The
-                  suggested time is around 2 weeks.
-                </BlockText>
-              </StackItem>
-              <StackItem>
+            </StackItem>
+            <StackItem>
+              <Multiselect
+                onCreate={(name) =>
+                  this.props.onChange({
+                    repos: splitRepositoryNames(name)
+                      .filter((n) => !this.props.profile.repos.includes(n))
+                      .concat(this.props.profile.repos),
+                  })
+                }
+                onChange={(value) => this.props.onChange({ repos: value })}
+                value={this.props.profile.repos}
+                data={this.props.repoOptions || []}
+                placeholder="Enter a repository name (e.g. newrelic/nr1-ospo)"
+                filter="contains"
+                messages={{
+                  emptyFilter:
+                    'Did not match any suggested repositories to that name.',
+                  emptyList:
+                    'Enter a personal access token to see suggested repositories, or start typing to add your own.',
+                  createOption({ searchTerm }) {
+                    const split = splitRepositoryNames(searchTerm);
+                    if (!split.length)
+                      return 'Invalid repository name (make sure to include the organization)';
+                    if (split.length === 1) return `Add repository ${split[0]}`;
+                    return `Add repositories ${split.join(', ')}`;
+                  },
+                }}
+              />
+            </StackItem>
+            <StackItem>
+              <details>
+                <summary>
+                  <BlockText
+                    style={{ display: 'inline-block' }}
+                    spacingType={[
+                      HeadingText.SPACING_TYPE.OMIT,
+                      HeadingText.SPACING_TYPE.OMIT,
+                      HeadingText.SPACING_TYPE.SMALL,
+                      HeadingText.SPACING_TYPE.SMALL,
+                    ]}
+                  >
+                    Advanced Configuration
+                  </BlockText>
+                </summary>
                 <Stack
                   fullWidth
-                  directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
-                  verticalType={Stack.VERTICAL_TYPE.BOTTOM}
+                  horizontalType={Stack.HORIZONTAL_TYPE.FILL}
+                  directionType={Stack.DIRECTION_TYPE.VERTICAL}
+                  gapType={Stack.GAP_TYPE.LARGE}
                 >
-                  <StackItem grow>
-                    <TextField
-                      placeholder="Enter a number"
-                      style={{ width: '100%' }}
-                      type="number"
-                      onChange={({ target }) =>
+                  <StackItem>
+                    <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                      Denylist Labels
+                    </HeadingText>
+                  </StackItem>
+                  <StackItem>
+                    <BlockText type={BlockText.TYPE.NORMAL}>
+                      Optionally select labels this tool should denylist. Issues
+                      or PRs with the selected labels will not be shown.
+                    </BlockText>
+                  </StackItem>
+                  <StackItem>
+                    <Multiselect
+                      onCreate={({ name }) =>
+                        name &&
                         this.props.onChange({
-                          staleTimeValue: parseFloat(target.value),
+                          labels: !this.props.profile.labels.includes(name)
+                            ? this.props.profile.labels.concat([name])
+                            : this.props.profile.labels,
                         })
                       }
-                      value={
-                        isNaN(this.props.profile.staleTimeValue)
-                          ? ''
-                          : this.props.profile.staleTimeValue.toString()
+                      onChange={(value) =>
+                        this.props.onChange({
+                          labels: value.map((v) =>
+                            typeof v !== 'string' ? v.name : v
+                          ),
+                        })
                       }
+                      value={this.props.profile.labels}
+                      placeholder="Select labels to filter"
+                      data={ALL_LABELS.filter(
+                        (l) =>
+                          !this.props.profile.labels.includes(
+                            typeof l !== 'string' ? l.name : l
+                          )
+                      )}
+                      textField="name"
+                      itemComponent={({ item }) => (
+                        <IssueLabel name={item.name} color={item.color} />
+                      )}
+                      filter="contains"
                     />
                   </StackItem>
-                  <StackItem grow>
-                    <Select
-                      onChange={(evt, value) =>
-                        this.props.onChange({ staleTimeUnit: value })
+                  <StackItem>
+                    <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                      Employee GitHub Usernames
+                    </HeadingText>
+                  </StackItem>
+                  <StackItem>
+                    <BlockText type={BlockText.TYPE.NORMAL}>
+                      This dashboard pulls a list of current employee GitHub
+                      handles from shared account storage, using it to determine
+                      if an Issue or PR has received a response from inside the
+                      company. You can specify additional GitHub usernames this
+                      dashboard should treat as employees here.
+                    </BlockText>
+                  </StackItem>
+                  <StackItem>
+                    <Multiselect
+                      onCreate={(name) =>
+                        this.props.onChange({
+                          users: splitLogins(name)
+                            .filter(
+                              (n) => !this.props.profile.users.includes(n)
+                            )
+                            .concat(this.props.profile.users),
+                        })
                       }
-                      value={this.props.profile.staleTimeUnit}
+                      onChange={(value) =>
+                        this.props.onChange({
+                          users: value,
+                        })
+                      }
+                      value={this.props.profile.users}
+                      data={[]}
+                      placeholder="Enter additional GitHub usernames"
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <HeadingText type={HeadingText.TYPE.HEADING_4}>
+                      Stale Duration Threshold
+                    </HeadingText>
+                  </StackItem>
+                  <StackItem>
+                    <BlockText type={BlockText.TYPE.NORMAL}>
+                      Optionally adjust the duration of time an Issue and PR
+                      should go without activity before it is considered stale.
+                      The suggested time is around 2 weeks.
+                    </BlockText>
+                  </StackItem>
+                  <StackItem>
+                    <Stack
+                      fullWidth
+                      directionType={Stack.DIRECTION_TYPE.HORIZONTAL}
+                      verticalType={Stack.VERTICAL_TYPE.BOTTOM}
                     >
-                      <SelectItem value={1000 * 60}>Minutes</SelectItem>
-                      <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
-                      <SelectItem value={1000 * 60 * 60 * 24}>Days</SelectItem>
-                      <SelectItem value={1000 * 60 * 60 * 24 * 7}>
-                        Weeks
-                      </SelectItem>
-                    </Select>
+                      <StackItem grow>
+                        <TextField
+                          placeholder="Enter a number"
+                          style={{ width: '100%' }}
+                          type="number"
+                          onChange={({ target }) =>
+                            this.props.onChange({
+                              staleTimeValue: parseFloat(target.value),
+                            })
+                          }
+                          value={
+                            isNaN(this.props.profile.staleTimeValue)
+                              ? ''
+                              : this.props.profile.staleTimeValue.toString()
+                          }
+                          className="ospo-darktextinput"
+                        />
+                      </StackItem>
+                      <StackItem grow>
+                        <Select
+                          onChange={(evt, value) =>
+                            this.props.onChange({ staleTimeUnit: value })
+                          }
+                          value={this.props.profile.staleTimeUnit}
+                        >
+                          <SelectItem value={1000 * 60}>Minutes</SelectItem>
+                          <SelectItem value={1000 * 60 * 60}>Hours</SelectItem>
+                          <SelectItem value={1000 * 60 * 60 * 24}>
+                            Days
+                          </SelectItem>
+                          <SelectItem value={1000 * 60 * 60 * 24 * 7}>
+                            Weeks
+                          </SelectItem>
+                        </Select>
+                      </StackItem>
+                    </Stack>
                   </StackItem>
                 </Stack>
-              </StackItem>
-            </Stack>
-          </details>
-        </StackItem>
-      </Stack>
+              </details>
+            </StackItem>
+          </Stack>
+        </CardBody>
+      </Card>
     );
   }
 }
