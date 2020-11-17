@@ -177,15 +177,12 @@ export default class SettingsQuery extends React.Component {
    *     none were found.
    */
   static async readEmployeeData() {
-    /*
     const { data } = await AccountStorageQuery.query({
       accountId: EMPLOYEE_METADATA_ACCOUNT_ID,
       collection: EMPLOYEE_METADATA_COLLECTION,
       documentId: EMPLOYEE_METADATA_DOCUMENT,
     });
     return data?.users;
-    */
-    return ['bob'];
   }
 
   static propTypes = {

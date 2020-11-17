@@ -34,6 +34,13 @@ $img-path: '~react-widgets/lib/img';
   padding: 16px 0 !important;
 }
 
+/* profile selector make bigger */
+
+.ospo-profile button {
+  min-width: 275px;
+  min-height: 32px;
+}
+
 /* fix double scrollbars */
 
 #root {

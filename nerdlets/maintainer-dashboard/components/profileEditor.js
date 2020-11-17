@@ -4,16 +4,12 @@ import {
   HeadingText,
   Stack,
   StackItem,
-  Button,
   BlockText,
-  Icon,
   TextField,
-  Link,
   Select,
   SelectItem,
 } from 'nr1';
-import { Multiselect, DropdownList } from 'react-widgets';
-import { getUserInfo } from '../graphql/githubData';
+import { Multiselect } from 'react-widgets';
 import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 
 /** An array of { name, color } for every GitHub issue label in the default set */
@@ -63,13 +59,27 @@ function splitLogins(loginList) {
   );
 }
 
+/**
+ * A simple form for editing a single profile configuration.
+ *
+ * This component is a controlled component, and does not attempt to maintain
+ * it's own state. Modifications to the form are passed up using the onChange
+ * function prop, and then must be propagated back down using the profile prop.
+ */
 export default class ProfileEditor extends React.PureComponent {
   static propTypes = {
     /**
-     * ({repos, labels, users, staleTimeUnit, staleTimeValue, profileName}) =>
-     * void
+     * Function which receives changes in the ProfileEditor form. Takes a single
+     * input parameter of type profile. This function will be called anytimme
+     * any value in this form is changed with only the value that changed: for
+     * example, if a new repository is selected onChange({ repos }) will be
+     * called.
      */
     onChange: PropTypes.func.isRequired,
+    /**
+     * An object representing the current profile which should be displayed in
+     * the form.
+     */
     profile: PropTypes.shape({
       repos: PropTypes.arrayOf(PropTypes.string).isRequired,
       labels: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -78,6 +88,7 @@ export default class ProfileEditor extends React.PureComponent {
       staleTimeUnit: PropTypes.number.isRequired,
       profileName: PropTypes.string.isRequired,
     }),
+    /** A list of repository selection suggestions, in 'owner/repo' format. */
     repoOptions: PropTypes.arrayOf(PropTypes.string),
   };
 
@@ -90,7 +101,7 @@ export default class ProfileEditor extends React.PureComponent {
         gapType={Stack.GAP_TYPE.LARGE}
       >
         <StackItem>
-          <HeadingText type={HeadingText.TYPE.HEADING_3}>
+          <HeadingText type={HeadingText.TYPE.HEADING_4}>
             Repositories
           </HeadingText>
         </StackItem>

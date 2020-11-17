@@ -9,12 +9,11 @@ import {
   Icon,
   TextField,
   Link,
-  Select,
-  SelectItem,
+  Card,
+  CardBody,
 } from 'nr1';
-import { Multiselect, DropdownList } from 'react-widgets';
+import { DropdownList } from 'react-widgets';
 import { getUserInfo } from '../graphql/githubData';
-import IssueLabel, { KNOWN_LABEL_COLORS } from './issueLabel';
 import SettingsQuery from '../util/storageUtil';
 import ProfileEditor from './profileEditor';
 
@@ -186,13 +185,13 @@ export default class SettingsUI extends React.Component {
       ({ repos }) => repos.length === 0
     );
     if (needRepo)
-      return `Please select at least one repository for profile ${needRepo.profileName}`;
+      return `Please select at least one repository for profile "${needRepo.profileName}"`;
     // check for valid stale time
     const needStale = this.state.allProfiles.find(
       ({ staleTimeValue }) => !staleTimeValue
     );
     if (needStale)
-      return `Please enter a valid stale time for profile ${needStale.profileName}`;
+      return `Please enter a valid stale time for profile "${needStale.profileName}"`;
     // TODO: check for dupe profiles
     return null;
   }
@@ -229,9 +228,12 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
-              Your personal access token will stored in NerdStorage vault, and
-              only be accessible to you. This token can be removed or revoked at
-              any time.
+              Your personal access token will stored in{' '}
+              <Link to="https://developer.newrelic.com/explore-docs/nerdstoragevault">
+                NerdStorageVault
+              </Link>
+              , and will only be accessible to you. This token can be removed or
+              revoked at any time.
             </BlockText>
           </StackItem>
           <StackItem>
@@ -273,12 +275,15 @@ export default class SettingsUI extends React.Component {
           </StackItem>
           <StackItem>
             <HeadingText type={HeadingText.TYPE.HEADING_3}>
-              Profiles (Pick better name?)
+              Profiles
             </HeadingText>
           </StackItem>
           <StackItem>
             <BlockText type={BlockText.TYPE.NORMAL}>
-              Blah blah choose profile blah blah.
+              Use the dropdown below to select a profile to edit. To create a
+              new profile, type the profile name in the search bar and press
+              enter. The configuration for the currently selected profile is
+              shown in the grey box below.
             </BlockText>
           </StackItem>
           <StackItem>
@@ -325,7 +330,11 @@ export default class SettingsUI extends React.Component {
                   )}
                 </div>
               )}
-              selectIcon={<Icon type={Icon.TYPE.INTERFACE__CARET__CARET_BOTTOM__WEIGHT_BOLD} />}
+              selectIcon={
+                <Icon
+                  type={Icon.TYPE.INTERFACE__CARET__CARET_BOTTOM__WEIGHT_BOLD}
+                />
+              }
               onChange={(name) =>
                 this.setState(({ allProfiles }) => ({
                   currentProfileIndex: allProfiles.findIndex(
@@ -358,18 +367,26 @@ export default class SettingsUI extends React.Component {
             />
           </StackItem>
           <StackItem>
-            <ProfileEditor
-              profile={this.state.allProfiles[this.state.currentProfileIndex]}
-              onChange={(profileChanged) =>
-                // replace the array with a new array with the changes made to the currently selected profile
-                this.setState(({ allProfiles, currentProfileIndex }) => ({
-                  allProfiles: allProfiles.map((p, i) =>
-                    i !== currentProfileIndex ? p : { ...p, ...profileChanged }
-                  ),
-                }))
-              }
-              repoOptions={this.state.patStatus.repoOptions}
-            />
+            <Card style={{ backgroundColor: '#EEEFEF', overflowY: 'visible' }}>
+              <CardBody>
+                <ProfileEditor
+                  profile={
+                    this.state.allProfiles[this.state.currentProfileIndex]
+                  }
+                  onChange={(profileChanged) =>
+                    // replace the array with a new array with the changes made to the currently selected profile
+                    this.setState(({ allProfiles, currentProfileIndex }) => ({
+                      allProfiles: allProfiles.map((p, i) =>
+                        i !== currentProfileIndex
+                          ? p
+                          : { ...p, ...profileChanged }
+                      ),
+                    }))
+                  }
+                  repoOptions={this.state.patStatus.repoOptions}
+                />
+              </CardBody>
+            </Card>
           </StackItem>
           <StackItem>
             <Button
