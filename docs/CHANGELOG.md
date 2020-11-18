@@ -1,3 +1,19 @@
+# [1.2.0](https://github.com/newrelic/nr1-ospo/compare/v1.1.3...v1.2.0) (2020-11-18)
+
+
+### Bug Fixes
+
+* add dark underline to text boxes with grey background ([59ea112](https://github.com/newrelic/nr1-ospo/commit/59ea11214adc2e849a28cfa4ac57d61f03c18ad8))
+* minor structure changes to the settings ([ffcd03d](https://github.com/newrelic/nr1-ospo/commit/ffcd03dbf17a4268ea4c98ce8cd49b93e4a99696))
+
+
+### Features
+
+* add ability to add and delete profiles ([6d018c7](https://github.com/newrelic/nr1-ospo/commit/6d018c749b40f74718fbcbd4a6ec11e6a56a3b6a))
+* add ability to create and switch profiles in the settings ([f833279](https://github.com/newrelic/nr1-ospo/commit/f8332799a26943f496a813d11cbf9b06cfd674d6))
+* add profile selection menu to homescreen ([0be8b54](https://github.com/newrelic/nr1-ospo/commit/0be8b5439e7a781d977dee40623bc4c2874b8cf0))
+* add text box for profile names ([80a81f5](https://github.com/newrelic/nr1-ospo/commit/80a81f57b100e53ae71e367e36a0b07add6fa007))
+
 ## [1.1.3](https://github.com/newrelic/nr1-ospo/compare/v1.1.2...v1.1.3) (2020-11-10)
 
 
