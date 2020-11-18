@@ -49,6 +49,8 @@ export default class DashboardData extends React.Component {
      * considered stale
      */
     staleTime: PropTypes.number.isRequired,
+    /** Pass through styles */
+    style: PropTypes.object,
   };
 
   constructor(props) {
@@ -128,6 +130,7 @@ export default class DashboardData extends React.Component {
         fullWidth
         horizontalType={Stack.HORIZONTAL_TYPE.FILL}
         directionType={Stack.DIRECTION_TYPE.VERTICAL}
+        style={this.props.style}
       >
         <StackItem shrink>
           <Stack fullWidth gapType={Stack.GAP_TYPE.EXTRA_LARGE}>
