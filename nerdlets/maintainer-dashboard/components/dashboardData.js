@@ -138,7 +138,7 @@ export default class DashboardData extends React.Component {
               <Table
                 compact
                 items={this.props.scanRepos}
-                style={{ width: '25em', height: '20em' }}
+                style={{ width: '35em', height: '20em' }}
               >
                 <TableHeader>
                   <TableHeaderCell value={({ item }) => item}>
