@@ -35,24 +35,26 @@ This project is distributed under the [Apache 2 license](LICENSE).
 
 1. If this nerdpack has never been deployed in your organization, follow the [Setting up Employee Metadata](#setting-up-employee-metadata) instructions.
 2. Ensure that you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [NPM](https://www.npmjs.com/get-npm) installed. If you're unsure whether you have one or both of them installed, run the following commands. (If you have them installed, these commands return a version number; if not, the commands aren't recognized.)
-```bash
-git --version
-npm -v
-```
-2. Install the [NR1 CLI](https://one.newrelic.com/launcher/developer-center.launcher) by going to [the developer center](https://one.newrelic.com/launcher/developer-center.launcher), and following the instructions to install and set up your New Relic development environment. This should take about 5 minutes.
-3. Execute the following command to clone this repository and run the code locally against your New Relic data:
-
-```bash
-nr1 nerdpack:clone -r https://github.com/newrelic/{{ NERDPACK_NAME }}.git
-cd {{ NERDPACK_NAME }}
-nr1 nerdpack:serve
-```
-
-Visit [https://one.newrelic.com/?nerdpacks=local](https://one.newrelic.com/?nerdpacks=local) to launch your app locally.
+  ```bash
+  git --version
+  npm -v
+  ```
+3. Install the [NR1 CLI](https://one.newrelic.com/launcher/developer-center.launcher) by going to [the developer center](https://one.newrelic.com/launcher/developer-center.launcher), and following the instructions to install and set up your New Relic development environment. This should take about 5 minutes.
+4. Execute the following command to clone this repository locally:
+  ```bash
+  nr1 nerdpack:clone -r https://github.com/newrelic/nr1-ospo.git
+  cd nr1-ospo
+  nr1 nerdpack:serve
+  ```
+5. In the project directory, create a `deploy-settings.json` file with account ID used for the employee metadata, shown below:
+  ```JSON
+  { "accountId": "<account ID here>" }
+  ```
+6. Run `nr1 nerdpack:serve` and visit [https://one.newrelic.com/?nerdpacks=local](https://one.newrelic.com/?nerdpacks=local) to launch your app locally.
 
 ## Deploying this Nerdpack
 
-If this nerdpack has never been deployed in your organization or the `uuid` of the nerdpack has changed, follow the [Setting up Employee Metadata](#setting-up-employee-metadata) instructions. Open a command prompt in the app's directory and run the following commands.
+If this nerdpack has never been deployed in your organization or the `uuid` of the nerdpack has changed, follow the [Setting up Employee Metadata](#setting-up-employee-metadata) instructions. Also ensure that the `deploy-settings.json` file has been setup according to [Getting Started](#getting-started). Open a command prompt in the app's directory and run the following commands.
 
 ```bash
 # If you need to create a new uuid for the account to which you're deploying this app, use the following
@@ -69,23 +71,30 @@ Visit [https://one.newrelic.com](https://one.newrelic.com), and launch your app 
 
 As GitHub does not provide a built-in method for determining company association, a database of company-associated GitHub handles must be made available to the dashboard for the categorization process. This database currently takes the form of an Account-scoped [NerdStorage](https://developer.newrelic.com/explore-docs/nerdstorage) document. This document must be setup once before deploying the dashboard, and then updated as the list of GitHub handles at your company changes.
 
-This NerdStorage document is expected to be under the `accountId`, `collection`, and `documentId` specified in [storageUtil.js](./nerdlets/maintainer-dashboard/util/storageUtil.js) under the `EMPLOYEE_METADATA` constants. Depending on your deployment, you may need to adjust the `EMPLOYEE_METADATA_ACCOUNT_ID` to an account in your organization that the dashboard deployment can access. Once adjusted, you can setup the employee metadata NerdStorage document using the by following the instructions below:
-1. Install [newrelic CLI](https://developer.newrelic.com/automate-workflows/get-started-new-relic-cli) and set it up with a Personal API key.
+In order to create this document, you will first need to choose or create an account in your organization that any prospective user of the dashboard deployment can read--this ensures that the dashboard will have permissions to read the document when accessed by other users in the organization. Once you've chosen an account, you can install the employee metadata NerdStorage document to that account by following the instructions below:
+1. Install [newrelic CLI](https://developer.newrelic.com/automate-workflows/get-started-new-relic-cli) and set it up with a Personal API key and the same region as your chosen account.
 2. Retrieve a list of GitHub handles associated with your company, and format them into the following JSON structure, and save the result to a file. Ensure the comments are removed to prevent errors.
-```JavaScript
+  ```JavaScript
+  {
+    "users": [
+      // List company GitHub logins below.
+      // Do not use emails here, as a GitHub login can be associated with more than one email.
+      "github-handle1",
+      "github-handle2",
+      // ...
+    ]
+  }
+  ```
+3. Run the following newrelic cli command, replacing `{json file name}` with the name of the JSON file generated above, `{account id}` with the numerical ID of the chosen account, and `{nerdpack id}` with the nerdpack ID found in [nr1.json](./nr1.json):
+  ```sh
+  newrelic nerdstorage document write -a {account id} -d {nerdpack id}-employeeMetadata-v1 -c {nerdpack id}-employeeMetadata-v1 -s ACCOUNT -o "$(< {json file name})" -p {nerdpack id}
+  ```
+
+Finally, you will need to indicate to the dashboard which account to check for employee metadata--this can be done by creating a `deploy-settings.json` file at the root of the project with the following contents:
+```JSON
 {
-  "users": [
-    // List company GitHub logins below.
-    // Do not use emails here, as a GitHub login can be associated with more than one email.
-    "github-handle1",
-    "github-handle2",
-    // ...
-  ]
+  "accountId": "{account id}"
 }
-```
-3. Run the following newrelic cli command, replacing `<json file name>` with the name of the JSON file generated above, `<account id>` with the value of `EMPLOYEE_METADATA_ACCOUNT_ID`, and `<nerdpack id>` with the nerdpack ID found in [nr1.json](./nr1.json):
-```sh
-newrelic nerdstorage document write -a <account id> -d <nerdpack id>-employeeMetadata-v1 -c <nerdpack id>-employeeMetadata-v1 -s ACCOUNT -o "$(< <json file name>)" -p <nerdpack id>
 ```
 
 # Support

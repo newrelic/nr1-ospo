@@ -7,12 +7,13 @@ import {
 import React from 'react';
 import PropTypes from 'prop-types';
 import { id } from '../../../nr1.json';
+import { accountId } from '../../../deploy-settings.json';
 
 /** Increment this value when changing the schema of the data in nerdstorage */
 const DASHBOARD_MAJOR_VERSION = 2;
 const GH_TOKEN_KEY = `${id}-githubToken-v1`;
 const SETTINGS_KEY = `${id}-ospoSettings-v1`;
-const EMPLOYEE_METADATA_ACCOUNT_ID = ***REMOVED***;
+const EMPLOYEE_METADATA_ACCOUNT_ID = accountId;
 const EMPLOYEE_METADATA_COLLECTION = `${id}-employeeMetadata-v1`;
 const EMPLOYEE_METADATA_DOCUMENT = EMPLOYEE_METADATA_COLLECTION;
 

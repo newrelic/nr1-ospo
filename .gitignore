@@ -8,3 +8,4 @@ tmp
 .DS_Store
 .env
 nerdlets/maintainer-dashboard/data/userdata-sample.json
+deploy-settings.json
