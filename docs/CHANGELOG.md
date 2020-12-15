@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/newrelic/nr1-ospo/compare/v1.0.0...v1.0.1) (2020-12-15)
+
+
+### Bug Fixes
+
+* expand repository table width to accomidate long repository names ([ad9eada](https://github.com/newrelic/nr1-ospo/commit/ad9eadab7cb99e3a4e650ab1ac2544c0e0d1b291))
+
 # 1.0.0 (2020-12-15)
 
 
