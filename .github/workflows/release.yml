@@ -40,6 +40,10 @@ jobs:
       - name: Install NR1 CLI
         run: curl -s https://cli.nr-ext.net/installer.sh | sudo bash
 
+      - name: Create Fake Deploy Settings
+        run: |
+          echo "{\"accountId\": 0}" > deploy-settings.json
+
       - name: NR1 Nerdpack Build
         run: |
           nr1 nerdpack:build
